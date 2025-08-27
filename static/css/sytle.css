@@ -1,0 +1,40 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+}
+
+header {
+    background: #333;
+    color: white;
+    padding: 1rem;
+}
+
+header nav a {
+    color: white;
+    margin-right: 1rem;
+    text-decoration: none;
+}
+
+form {
+    background: white;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+table {
+    width: 100%;
+    background: white;
+    border-collapse: collapse;
+}
+
+table th, table td {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+}
+
+table th {
+    background: #f0f0f0;
+}
+body { font-family: 'Roboto', sans-serif; }
+.card { border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }

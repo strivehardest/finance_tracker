@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Categories</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <h2>Categories</h2>
+    <nav>
+        <a href="{% url 'dashboard_page' %}">Dashboard</a>
+        <a href="{% url 'transactions_page' %}">Transactions</a>
+        <button onclick="logout()">Logout</button>
+    </nav>
+
+    <div id="categories-list">
+        <p>Loading categories...</p>
+    </div>
+
+    <script src="{% static 'js/auth.js' %}"></script>
+    <script>
+        if (!localStorage.getItem("access_token")) {
+            window.location.href = "/login/";
+        }
+
+        fetch("/api/categories/", {
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem("access_token")
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            let container = document.getElementById("categories-list");
+            container.innerHTML = "";
+            data.forEach(cat => {
+                container.innerHTML += `<p>${cat.name}</p>`;
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            localStorage.removeItem("access_token");
+            window.location.href = "/login/";
+        });
+    </script>
+{% extends 'base.html' %}
+{% block title %}Categories{% endblock %}
+{% block content %}
+<h1>Your Categories</h1>
+<!-- List of categories will go here -->
+{% endblock %}
+</body>
+</html>
+
