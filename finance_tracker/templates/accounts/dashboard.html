@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Finance Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-tachometer-alt text-primary me-2"></i>Dashboard</h2>
+    <div>
+        <a href="{% url 'add_transaction' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Transaction
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Balance</h6>
+                        <h4 class="mb-0">GH₵{{ total_balance|floatformat:2 }}</h4>
+                    </div>
+                    <div class="text-primary">
+                        <i class="fas fa-wallet fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">Monthly Income</h6>
+                        <h4 class="mb-0 income">GH{{ monthly_income|floatformat:2 }}</h4>
+                    </div>
+                    <div class="text-success">
+                        <i class="fas fa-arrow-up fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">Monthly Expenses</h6>
+                        <h4 class="mb-0 expense">GH₵{{ monthly_expenses|floatformat:2 }}</h4>
+                    </div>
+                    <div class="text-danger">
+                        <i class="fas fa-arrow-down fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">Net Income</h6>
+                        <h4 class="mb-0 {% if net_income >= 0 %}income{% else %}expense{% endif %}">
+                            GH₵{{ net_income|floatformat:2 }}
+                        </h4>
+                    </div>
+                    <div class="{% if net_income >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Transactions -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Transactions</h5>
+                <a href="{% url 'transactions_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_transactions %}
+                    {% for transaction in recent_transactions %}
+                        <div class="transaction-item p-3 mb-2 border rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <span class="me-3">{{ transaction.category.icon }}</span>
+                                    <div>
+                                        <h6 class="mb-0">{{ transaction.description }}</h6>
+                                        <small class="text-muted">
+                                            {{ transaction.category.name }} • {{ transaction.account.name }}
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="h6 mb-0 {% if transaction.category.type == 'income' %}income{% else %}expense{% endif %}">
+                                        {% if transaction.category.type == 'income' %}+{% else %}-{% endif %}GH₵{{ transaction.amount|floatformat:2 }}
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">{{ transaction.date }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-4">No transactions yet. Start by adding your first transaction!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Quick Stats</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Accounts</span>
+                        <strong>{{ total_accounts }}</strong>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Categories</span>
+                        <strong>{{ total_categories }}</strong>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Transactions</span>
+                        <strong>{{ total_transactions }}</strong>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'add_account' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Add Account
+                    </a>
+                    <a href="{% url 'add_category' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-tag me-1"></i>Add Category
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accounts List -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-university me-2"></i>Your Accounts</h5>
+            </div>
+            <div class="card-body">
+                {% for account in accounts %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="mb-0">{{ account.name }}</h6>
+                            <small class="text-muted">{{ account.get_type_display }}</small>
+                        </div>
+                        <span class="fw-bold">GH₵{{ account.balance|floatformat:2 }}</span>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">No accounts yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+<p class="text-muted">developed with django by Waliu Ibrahimah Aforlabi</p>
+</div>
+</div>
+{% endblock %}
