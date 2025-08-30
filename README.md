@@ -54,7 +54,7 @@ Installation
 
 1. Clone or download the project
 ```bash
-git clone <repository-url>
+git clone <(https://github.com/strivehardest/finance_tracker/>
 cd finance_tracker
 ```
 
@@ -80,12 +80,12 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-5. Run the development server
+4. Run the development server
 ```bash
 python manage.py runserver
 ```
 
-6. Access the application
+5. Access the application
 - Main Application: http://127.0.0.1:8000/
 - Admin Panel: http://127.0.0.1:8000/admin/
 
@@ -113,14 +113,15 @@ Transaction Management
 - View detailed transaction history
 - Add notes for better record keeping
 
-🛠️ Technical Details
+Technical Details
 
 Technology Stack
-- *Backend:* Django 4.2.7
-- *Frontend:* HTML5, CSS3, JavaScript
+- *Backend:* Django 
+- *Frontend:* HTML5, CSS3
+- *Auth:* Token-based authentication, DRF Tokens
 - *Styling:* Bootstrap 5.1.3
 - *Icons:* Font Awesome 6.0
-- **Database:** SQLite (development) / PostgreSQL (production recommended)
+- *Database:* SQLite (development) / PostgreSQL (production recommended)
 
 Project Structure
 ```
@@ -162,7 +163,7 @@ User Model
 - Extends Django's AbstractUser
 - Additional fields: phone, created_at
 
-#Account Model
+Account Model
 - Multiple account types support
 - Automatic balance calculation
 - User-specific accounts
@@ -177,28 +178,13 @@ Transaction Model
 - Automatic balance updates
 - Search and filter capabilities
 
-#Configuration
-
-Environment Variables
-Create a `.env` file for production:
-```env
-SECRET_KEY=your-secret-key-here
-DEBUG=False
-DATABASE_URL=your-database-url
-ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
-```
-
 Database Configuration
 For production, update `settings.py`:
 ```python
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'finance_tracker_db',
-        'USER': 'your_username',
-        'PASSWORD': 'your_password',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 ```
@@ -210,23 +196,6 @@ Local Development
 python manage.py runserver
 ```
 
-Production Deployment
-
-Using Heroku
-1. Install Heroku CLI
-2. Create `Procfile`:
-```
-web: gunicorn finance_tracker.wsgi
-```
-
-3. Add `gunicorn` to requirements.txt
-4. Deploy:
-```bash
-heroku create your-app-name
-git push heroku main
-heroku run python manage.py migrate
-heroku run python manage.py createsuperuser
-```
 
  Default Features
 
