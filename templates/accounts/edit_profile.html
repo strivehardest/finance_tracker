@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row">
+        <!-- Sidebar Navigation -->
+        <div class="col-lg-3 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'profile' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-user me-2"></i> My Profile
+                        </a>
+                        <a href="{% url 'edit_profile' %}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-edit me-2"></i> Edit Profile
+                        </a>
+                        <a href="{% url 'dashboard' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-chart-line me-2"></i> Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <div class="card shadow-sm">
+                <div class="card-header bg-gradient p-4 border-0">
+                    <h3 class="mb-0">
+                        <i class="fas fa-edit me-2"></i> Edit Profile
+                    </h3>
+                </div>
+
+                <div class="card-body p-5">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Messages -->
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Profile Picture Section -->
+                        <div class="card mb-4" style="background-color: #f9f9f9; border: 2px dashed #f57c00;">
+                            <div class="card-body">
+                                <h5 class="card-title mb-4">
+                                    <i class="fas fa-image me-2" style="color: #f57c00;"></i> Profile Picture
+                                </h5>
+
+                                <div class="row">
+                                    <div class="col-md-4 text-center mb-3 mb-md-0">
+                                        <div id="currentPhoto">
+                                            {% if has_profile_picture %}
+                                                <img src="{{ user.profile_picture.url }}" alt="Current Profile" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #f57c00;">
+                                            {% else %}
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 150px; height: 150px; background-color: #e0e0e0; margin: 0 auto;">
+                                                    <i class="fas fa-camera" style="font-size: 50px; color: #999;"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-8">
+                                        <div class="form-group">
+                                            {{ form.profile_picture }}
+                                            {% if form.profile_picture.help_text %}
+                                                <small class="form-text text-muted d-block mt-2">
+                                                    <i class="fas fa-info-circle me-1"></i> {{ form.profile_picture.help_text|safe }}
+                                                </small>
+                                            {% endif %}
+                                            {% if form.profile_picture.errors %}
+                                                <div class="text-danger mt-2">
+                                                    {% for error in form.profile_picture.errors %}
+                                                        <small>{{ error }}</small><br>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">Supported formats: PNG, JPG | Max size: 5MB</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Basic Information -->
+                        <div class="section-title mb-4">
+                            <h5 class="fw-bold">
+                                <i class="fas fa-id-card me-2" style="color: #f57c00;"></i> Basic Information
+                            </h5>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                        <div class="text-danger mt-2">
+                                            {% for error in form.first_name.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                        <div class="text-danger mt-2">
+                                            {% for error in form.last_name.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-group">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">Email Address</label>
+                                {{ form.email }}
+                                <small class="text-muted">Email address cannot be changed</small>
+                                {% if form.email.errors %}
+                                    <div class="text-danger mt-2">
+                                        {% for error in form.email.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Personal Information -->
+                        <div class="section-title mb-4 mt-5">
+                            <h5 class="fw-bold">
+                                <i class="fas fa-heart me-2" style="color: #f57c00;"></i> Personal Information
+                            </h5>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-group">
+                                <label for="{{ form.date_of_birth.id_for_label }}" class="form-label">Date of Birth</label>
+                                {{ form.date_of_birth }}
+                                {% if form.date_of_birth.errors %}
+                                    <div class="text-danger mt-2">
+                                        {% for error in form.date_of_birth.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Contact Information -->
+                        <div class="section-title mb-4 mt-5">
+                            <h5 class="fw-bold">
+                                <i class="fas fa-phone me-2" style="color: #f57c00;"></i> Contact Information
+                            </h5>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.country_code.id_for_label }}" class="form-label">Country Code</label>
+                                    {{ form.country_code }}
+                                    {% if form.country_code.errors %}
+                                        <div class="text-danger mt-2">
+                                            {% for error in form.country_code.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.phone_number.id_for_label }}" class="form-label">Phone Number</label>
+                                    {{ form.phone_number }}
+                                    <small class="text-muted">Without country code (digits only)</small>
+                                    {% if form.phone_number.errors %}
+                                        <div class="text-danger mt-2">
+                                            {% for error in form.phone_number.errors %}{{ error }}<br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Professional Information -->
+                        <div class="section-title mb-4 mt-5">
+                            <h5 class="fw-bold">
+                                <i class="fas fa-briefcase me-2" style="color: #f57c00;"></i> Professional Information
+                            </h5>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-group">
+                                <label for="{{ form.occupation.id_for_label }}" class="form-label">Occupation</label>
+                                {{ form.occupation }}
+                                <small class="text-muted">Your job title or profession</small>
+                                {% if form.occupation.errors %}
+                                    <div class="text-danger mt-2">
+                                        {% for error in form.occupation.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-group">
+                                <label for="{{ form.bio.id_for_label }}" class="form-label">Bio</label>
+                                {{ form.bio }}
+                                <small class="text-muted">Tell us about yourself (max 500 characters)</small>
+                                <div class="mt-2">
+                                    <small id="bioCounter" class="text-muted">0 / 500</small>
+                                </div>
+                                {% if form.bio.errors %}
+                                    <div class="text-danger mt-2">
+                                        {% for error in form.bio.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Preferences -->
+                        <div class="section-title mb-4 mt-5">
+                            <h5 class="fw-bold">
+                                <i class="fas fa-cog me-2" style="color: #f57c00;"></i> Preferences
+                            </h5>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-group">
+                                <label for="{{ form.preferred_currency.id_for_label }}" class="form-label">Preferred Currency</label>
+                                {{ form.preferred_currency }}
+                                {% if form.preferred_currency.errors %}
+                                    <div class="text-danger mt-2">
+                                        {% for error in form.preferred_currency.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Form Buttons -->
+                        <div class="mt-6 pt-4 border-top d-flex gap-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i> Save Changes
+                            </button>
+                            <a href="{% url 'profile' %}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times me-2"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+        color: white;
+    }
+
+    .section-title {
+        padding-left: 0.5rem;
+        border-left: 4px solid #f57c00;
+    }
+
+    .section-title h5 {
+        color: #333;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #f57c00;
+        box-shadow: 0 0 0 0.2rem rgba(245, 124, 0, 0.25);
+    }
+
+    .card {
+        border: none;
+        border-radius: 8px;
+    }
+
+    .list-group-item.active {
+        background-color: #f57c00;
+        border-color: #f57c00;
+    }
+
+    .list-group-item-action:hover {
+        background-color: #f5f5f5;
+    }
+
+    .form-label {
+        color: #666;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .gap-3 {
+        gap: 1rem;
+    }
+
+    #profilePictureInput {
+        padding-top: 0.5rem;
+    }
+
+    .form-control.form-control-color {
+        width: 100%;
+    }
+</style>
+
+<script>
+    // Character counter for bio
+    document.addEventListener('DOMContentLoaded', function() {
+        const bioField = document.getElementById('id_bio');
+        const bioCounter = document.getElementById('bioCounter');
+
+        if (bioField) {
+            function updateCounter() {
+                const count = bioField.value.length;
+                bioCounter.textContent = count + ' / 500';
+            }
+
+            bioField.addEventListener('input', updateCounter);
+            updateCounter();
+        }
+
+        // Preview image before upload
+        document.getElementById('profilePictureInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const currentPhoto = document.getElementById('currentPhoto');
+                    currentPhoto.innerHTML = '<img src="' + event.target.result + '" alt="Preview" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #f57c00;">';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+</script>
+{% endblock %}

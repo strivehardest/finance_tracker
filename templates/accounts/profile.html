@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row">
+        <!-- Sidebar Navigation -->
+        <div class="col-lg-3 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'profile' %}" class="list-group-item list-group-item-action active">
+                            <i class="fas fa-user me-2"></i> My Profile
+                        </a>
+                        <a href="{% url 'edit_profile' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-edit me-2"></i> Edit Profile
+                        </a>
+                        <a href="{% url 'dashboard' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-chart-line me-2"></i> Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <div class="card shadow-sm">
+                <div class="card-header bg-gradient p-4 border-0">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i> My Profile
+                    </h3>
+                </div>
+
+                <div class="card-body">
+                    <!-- Profile Picture Section -->
+                    <div class="row mb-5">
+                        <div class="col-md-4 text-center">
+                            <div class="mb-3">
+                                {% if has_profile_picture %}
+                                    <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="rounded-circle" style="width: 200px; height: 200px; object-fit: cover; border: 4px solid #f57c00;">
+                                {% else %}
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 200px; height: 200px; background-color: #f0f0f0; margin: 0 auto; border: 4px solid #f57c00;">
+                                        <i class="fas fa-user" style="font-size: 80px; color: #ccc;"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'edit_profile' %}" class="btn btn-primary btn-sm mt-2">
+                                <i class="fas fa-camera me-1"></i> Change Photo
+                            </a>
+                        </div>
+
+                        <div class="col-md-8">
+                            <div class="profile-info">
+                                <div class="mb-4">
+                                    <label class="text-muted d-block mb-1">Full Name</label>
+                                    <h5 class="fw-bold">{{ user.first_name }} {{ user.last_name }}</h5>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="text-muted d-block mb-1">Username</label>
+                                    <p>@{{ user.username }}</p>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="text-muted d-block mb-1">Email Address</label>
+                                    <p><a href="mailto:{{ user.email }}">{{ user.email }}</a></p>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="text-muted d-block mb-1">Member Since</label>
+                                    <p>{{ user.created_at|date:"F d, Y" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-5">
+
+                    <!-- Profile Details -->
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="text-muted d-block mb-1">
+                                <i class="fas fa-birthday-cake me-1"></i> Date of Birth
+                            </label>
+                            {% if user.date_of_birth %}
+                                <p class="fw-bold">{{ user.date_of_birth|date:"F d, Y" }}</p>
+                                <small class="text-muted">Age: {{ age }} years old</small>
+                            {% else %}
+                                <p class="text-muted">Not provided</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label class="text-muted d-block mb-1">
+                                <i class="fas fa-phone me-1"></i> Phone Number
+                            </label>
+                            {% if user.phone_number %}
+                                <p class="fw-bold">{{ user.country_code }} {{ user.phone_number }}</p>
+                                <small class="text-muted">{{ user.get_country_code_display }}</small>
+                            {% else %}
+                                <p class="text-muted">Not provided</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label class="text-muted d-block mb-1">
+                                <i class="fas fa-briefcase me-1"></i> Occupation
+                            </label>
+                            {% if user.occupation %}
+                                <p class="fw-bold">{{ user.occupation }}</p>
+                            {% else %}
+                                <p class="text-muted">Not provided</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label class="text-muted d-block mb-1">
+                                <i class="fas fa-globe me-1"></i> Preferred Currency
+                            </label>
+                            <p class="fw-bold">{{ user.get_preferred_currency_display }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Bio Section -->
+                    {% if user.bio %}
+                    <div class="mt-5 p-4" style="background-color: #f9f9f9; border-left: 4px solid #f57c00; border-radius: 4px;">
+                        <label class="text-muted d-block mb-2">
+                            <i class="fas fa-quote-left me-1"></i> Bio
+                        </label>
+                        <p style="white-space: pre-wrap;">{{ user.bio }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Edit Button -->
+                    <div class="mt-5">
+                        <a href="{% url 'edit_profile' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-edit me-2"></i> Edit Profile
+                        </a>
+                        <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient {
+        background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+        color: white;
+    }
+
+    .profile-info label {
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .profile-info p {
+        margin-bottom: 0;
+        color: #333;
+    }
+
+    .card {
+        border: none;
+        border-radius: 8px;
+    }
+
+    .list-group-item.active {
+        background-color: #f57c00;
+        border-color: #f57c00;
+    }
+
+    .list-group-item-action:hover {
+        background-color: #f5f5f5;
+    }
+</style>
+{% endblock %}

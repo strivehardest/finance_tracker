@@ -4,23 +4,98 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-tachometer-alt text-primary me-2"></i>Dashboard</h2>
-    <div>
+    <div class="d-flex align-items-center gap-3">
+        {% if user.profile_picture %}
+            <img src="{{ user.profile_picture.url }}" alt="Profile" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #f57c00;">
+        {% else %}
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; background-color: #f0f0f0; border: 2px solid #f57c00;">
+                <i class="fas fa-user" style="font-size: 24px; color: #999;"></i>
+            </div>
+        {% endif %}
+        <h2 class="mb-0"><i class="fas fa-tachometer-alt text-primary me-2"></i>Dashboard</h2>
+    </div>
+    <div class="d-flex gap-2">
         <a href="{% url 'add_transaction' %}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Add Transaction
         </a>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-download me-1"></i>Export
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{% url 'export_excel' %}">
+                    <i class="fas fa-file-excel me-2"></i>Export to Excel
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'export_pdf' %}">
+                    <i class="fas fa-file-pdf me-2"></i>Export to PDF
+                </a></li>
+            </ul>
+        </div>
     </div>
 </div>
 
-<!-- Stats Cards -->
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card stats-card bg-success bg-opacity-10">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Income</h6>
+                        <h3 class="mb-0 text-success">{{ currency_symbol }}{{ total_income_converted|floatformat:2 }}</h3>
+                    </div>
+                    <div class="text-success">
+                        <i class="fas fa-arrow-up fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card stats-card bg-danger bg-opacity-10">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Expenses</h6>
+                        <h3 class="mb-0 text-danger">{{ currency_symbol }}{{ total_expenses_converted|floatformat:2 }}</h3>
+                    </div>
+                    <div class="text-danger">
+                        <i class="fas fa-arrow-down fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card stats-card bg-primary bg-opacity-10">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="text-muted mb-1">Net Balance</h6>
+                        <h3 class="mb-0 {% if total_income_converted >= total_expenses_converted %}text-success{% else %}text-danger{% endif %}">
+                            {{ currency_symbol }}{{ net_balance_converted|floatformat:2 }}
+                        </h3>
+                    </div>
+                    <div class="{% if total_income_converted >= total_expenses_converted %}text-success{% else %}text-danger{% endif %}">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Stats -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="card stats-card">
+        <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
                         <h6 class="text-muted mb-1">Total Balance</h6>
-                        <h4 class="mb-0">GH₵{{ total_balance|floatformat:2 }}</h4>
+                        <h4 class="mb-0">{{ currency_symbol }}{{ total_balance_converted|floatformat:2 }}</h4>
                     </div>
                     <div class="text-primary">
                         <i class="fas fa-wallet fa-2x"></i>
@@ -31,12 +106,12 @@
     </div>
     
     <div class="col-md-3">
-        <div class="card stats-card">
+        <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h6 class="text-muted mb-1">Monthly Income</h6>
-                        <h4 class="mb-0 income">GH{{ monthly_income|floatformat:2 }}</h4>
+                        <h6 class="text-muted mb-1">This Month Income</h6>
+                        <h4 class="mb-0 income">{{ currency_symbol }}{{ monthly_income_converted|floatformat:2 }}</h4>
                     </div>
                     <div class="text-success">
                         <i class="fas fa-arrow-up fa-2x"></i>
@@ -47,12 +122,12 @@
     </div>
     
     <div class="col-md-3">
-        <div class="card stats-card">
+        <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h6 class="text-muted mb-1">Monthly Expenses</h6>
-                        <h4 class="mb-0 expense">GH₵{{ monthly_expenses|floatformat:2 }}</h4>
+                        <h6 class="text-muted mb-1">This Month Expenses</h6>
+                        <h4 class="mb-0 expense">{{ currency_symbol }}{{ monthly_expenses_converted|floatformat:2 }}</h4>
                     </div>
                     <div class="text-danger">
                         <i class="fas fa-arrow-down fa-2x"></i>
@@ -63,19 +138,46 @@
     </div>
     
     <div class="col-md-3">
-        <div class="card stats-card">
+        <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h6 class="text-muted mb-1">Net Income</h6>
-                        <h4 class="mb-0 {% if net_income >= 0 %}income{% else %}expense{% endif %}">
-                            GH₵{{ net_income|floatformat:2 }}
+                        <h6 class="text-muted mb-1">Net This Month</h6>
+                        <h4 class="mb-0 {% if net_income_converted >= 0 %}income{% else %}expense{% endif %}">
+                            {{ currency_symbol }}{{ net_income_converted|floatformat:2 }}
                         </h4>
                     </div>
-                    <div class="{% if net_income >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    <div class="{% if net_income_converted >= 0 %}text-success{% else %}text-danger{% endif %}">
                         <i class="fas fa-chart-line fa-2x"></i>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row mb-4">
+    <!-- Monthly Income vs Expenses Chart -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Monthly Trends</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Category Breakdown Pie Chart -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>This Month by Category</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart"></canvas>
             </div>
         </div>
     </div>
@@ -124,7 +226,7 @@
     <div class="col-md-4">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Quick Stats</h5>
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Quick Info</h5>
             </div>
             <div class="card-body">
                 <div class="mb-3">
@@ -181,8 +283,105 @@
             </div>
         </div>
     </div>
-</div>
-<p class="text-muted">developed with django by Waliu Ibrahimah Aforlabi</p>
-</div>
-</div>
+
+<!-- Chart.js Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+<script>
+    // Monthly Income vs Expenses Chart
+    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+    const monthlyData = JSON.parse('{{ monthly_data|escapejs }}');
+    
+    const months = Object.keys(monthlyData);
+    const incomeData = months.map(month => monthlyData[month].income);
+    const expenseData = months.map(month => monthlyData[month].expense);
+    
+    new Chart(monthlyCtx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Income',
+                    data: incomeData,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                },
+                {
+                    label: 'Expenses',
+                    data: expenseData,
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Income vs Expenses Over Time'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Amount (GH₵)'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Category Breakdown Pie Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const categoryData = JSON.parse('{{ category_data|escapejs }}');
+    
+    const categoryLabels = categoryData.map(item => item.category__name);
+    const categoryAmounts = categoryData.map(item => item.total);
+    const categoryColors = [
+        '#f57c00', '#e65100', '#ff6f00', '#ff9800', '#ffb74d',
+        '#ffc107', '#ffd54f', '#ffeb3b', '#fdd835', '#fbc02d'
+    ];
+    
+    new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: categoryLabels,
+            datasets: [{
+                data: categoryAmounts,
+                backgroundColor: categoryColors.slice(0, categoryLabels.length),
+                borderColor: '#fff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': GH₵' + context.parsed + '.00';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
 {% endblock %}

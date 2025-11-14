@@ -1,0 +1,44 @@
+Welcome to Finance Tracker!
+============================
+
+Hello {{ first_name }},
+
+Thank you for creating an account with Finance Tracker! Your account has been successfully created and is ready to use.
+
+ACCOUNT DETAILS
+---------------
+Email: {{ email }}
+Username: {{ username }}
+
+WHAT YOU CAN DO NOW
+-------------------
+✓ Track your income and expenses in real-time
+✓ Manage multiple accounts and categories
+✓ View detailed financial analytics and reports
+✓ Switch between multiple currencies (GHS, USD, EUR, GBP, NGN)
+✓ Get insights into your spending patterns
+
+GETTING STARTED
+---------------
+Log in to your account at: {{ site_url }}/login/
+
+Once you're logged in, you can:
+- Add your bank accounts and other financial accounts
+- Create custom expense and income categories
+- Record your first transaction
+- View your financial dashboard and charts
+
+SECURITY REMINDER
+-----------------
+🔒 Never share your password with anyone. Finance Tracker staff will never ask for your password via email.
+
+NEED HELP?
+----------
+If you have any questions or need assistance getting started, feel free to reach out. We're here to help you make the most of Finance Tracker!
+
+Thank you for choosing Finance Tracker!
+
+Best regards,
+The Finance Tracker Team
+
+© 2025 Finance Tracker. All rights reserved.

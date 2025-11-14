@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 :root {
     --primary-color: #f57c00;       /* Bright orange */
     --secondary-color: #e65100;     /* Deep orange */
@@ -5,17 +7,25 @@
     --danger-color: #dc3545;        /* Red for danger */
     --warning-color: #ffc107;       /* Yellow for warnings */
     --info-color: #ff9800;          /* Orange for info */
+    --font-primary: 'Quicksand', sans-serif;
+    --font-secondary: 'Space Grotesk', sans-serif;
 }
 
 body {
     background-color: #f8f9fa; /* Light gray or white */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-primary);
     color: #333; /* Neutral text color */
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-secondary);
+    font-weight: 600;
 }
 
 .navbar-brand {
     font-weight: bold;
     color: var(--primary-color) !important;
+    font-family: var(--font-secondary);
 }
 
 .card {
@@ -28,6 +38,8 @@ body {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     border: none;
     color: #fff;
+    font-family: var(--font-primary);
+    font-weight: 600;
 }
 
 .btn-primary:hover {
@@ -44,6 +56,7 @@ body {
     color: rgba(255, 255, 255, 0.8);
     border-radius: 0.5rem;
     margin: 0.25rem 0;
+    font-family: var(--font-primary);
 }
 
 .sidebar .nav-link:hover,
@@ -73,3 +86,4 @@ body {
     transform: translateX(5px);
     box-shadow: 0 4px 8px rgba(255, 87, 34, 0.15); /* Soft orange shadow */
 }
+

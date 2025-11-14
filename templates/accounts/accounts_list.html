@@ -34,9 +34,19 @@
                     
                     <hr>
                     
-                    <small class="text-muted">
-                        Created: {{ account.created_at|date:"M d, Y" }}
-                    </small>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            Created: {{ account.created_at|date:"M d, Y" }}
+                        </small>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'edit_account' account.pk %}" class="btn btn-outline-warning" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'delete_account' account.pk %}" class="btn btn-outline-danger" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

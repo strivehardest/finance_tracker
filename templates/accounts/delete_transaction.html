@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Transaction - Finance Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Delete Transaction</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                
+                <p class="mb-3">Are you sure you want to delete the following transaction?</p>
+                
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-2">
+                            {{ transaction.description }}
+                        </h5>
+                        <p class="card-text mb-1">
+                            <strong>Amount:</strong>
+                            <span class="badge {% if transaction.category.type == 'income' %}bg-success{% else %}bg-danger{% endif %}">
+                                {% if transaction.category.type == 'income' %}+{% else %}-{% endif %}₵{{ transaction.amount }}
+                            </span>
+                        </p>
+                        <p class="card-text mb-1">
+                            <strong>Category:</strong> 
+                            <span class="badge bg-info">{{ transaction.category.name }}</span>
+                        </p>
+                        <p class="card-text mb-1">
+                            <strong>Account:</strong> 
+                            <span class="badge bg-secondary">{{ transaction.account.name }}</span>
+                        </p>
+                        <p class="card-text mb-0">
+                            <strong>Date:</strong> 
+                            <span class="text-muted">{{ transaction.date|date:"M d, Y" }}</span>
+                        </p>
+                        {% if transaction.notes %}
+                        <p class="card-text mt-2 mb-0">
+                            <strong>Notes:</strong> 
+                            <span class="text-muted">{{ transaction.notes }}</span>
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'transactions_list' %}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Yes, Delete Transaction
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

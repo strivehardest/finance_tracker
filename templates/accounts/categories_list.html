@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-tags text-primary me-2"></i>Categories</h2>
+    <h2><i class="fas fa-tags text-primary me-2"></i>Categories & Budgets</h2>
     <a href="{% url 'add_category' %}" class="btn btn-primary">
         <i class="fas fa-plus me-2"></i>Add Category
     </a>
@@ -15,19 +15,31 @@
         <h4 class="text-success mb-3"><i class="fas fa-arrow-up me-2"></i>Income Categories</h4>
         {% for category in categories %}
             {% if category.type == 'income' %}
-                <div class="card mb-2">
-                    <div class="card-body py-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center flex-grow-1">
                                 <span class="me-3" style="font-size: 1.5em;">{{ category.icon }}</span>
                                 <div>
                                     <h6 class="mb-0">{{ category.name }}</h6>
+                                    <small class="text-muted">{{ category.created_at|date:"M Y" }}</small>
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-circle me-2" style="width: 20px; height: 20px; background-color: {{ category.color }};"></div>
-                                <small class="text-muted">{{ category.created_at|date:"M Y" }}</small>
-                            </div>
+                            <div class="rounded-circle category-color-circle" data-color="{{ category.color }}" style="width: 20px; height: 20px;"></div>
+                        </div>
+                        
+                        <div class="alert alert-info small py-2 mb-2">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Income categories don't require budget limits
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'edit_category' category.id %}" class="btn btn-sm btn-outline-warning" title="Edit">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </a>
+                            <a href="{% url 'delete_category' category.id %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -36,22 +48,41 @@
     </div>
     
     <div class="col-md-6">
-        <h4 class="text-danger mb-3"><i class="fas fa-arrow-down me-2"></i>Expense Categories</h4>
+        <h4 class="text-danger mb-3"><i class="fas fa-arrow-down me-2"></i>Expense Categories & Budgets</h4>
         {% for category in categories %}
             {% if category.type == 'expense' %}
-                <div class="card mb-2">
-                    <div class="card-body py-2">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="d-flex align-items-center flex-grow-1">
                                 <span class="me-3" style="font-size: 1.5em;">{{ category.icon }}</span>
                                 <div>
                                     <h6 class="mb-0">{{ category.name }}</h6>
+                                    <small class="text-muted">{{ category.created_at|date:"M Y" }}</small>
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-circle me-2" style="width: 20px; height: 20px; background-color: {{ category.color }};"></div>
-                                <small class="text-muted">{{ category.created_at|date:"M Y" }}</small>
+                            <div class="rounded-circle category-color-circle" data-color="{{ category.color }}" style="width: 20px; height: 20px;"></div>
+                        </div>
+                        
+                        <!-- Budget Display -->
+                        {% if category.budget_limit %}
+                            <div class="alert alert-success small py-2 mb-2">
+                                <strong>Budget Limit:</strong> {{ user.preferred_currency }} {{ category.budget_limit|floatformat:2 }}
                             </div>
+                        {% else %}
+                            <div class="alert alert-warning small py-2 mb-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                No budget set
+                            </div>
+                        {% endif %}
+                        
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'edit_category' category.id %}" class="btn btn-sm btn-outline-warning" title="Edit Budget">
+                                <i class="fas fa-edit me-1"></i>Set Budget
+                            </a>
+                            <a href="{% url 'delete_category' category.id %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -70,4 +101,12 @@
         </a>
     </div>
 {% endif %}
+
+<script>
+    // Apply dynamic background colors to category circles
+    document.querySelectorAll('.category-color-circle').forEach(function(el) {
+        const color = el.getAttribute('data-color');
+        el.style.backgroundColor = color;
+    });
+</script>
 {% endblock %}
