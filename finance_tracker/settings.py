@@ -75,7 +75,7 @@ if config('DATABASE_URL', default=None):
     DATABASES = {
         'default': dj_database_url.config(
             default=config('DATABASE_URL'),
-            conn_max_age=600
+            conn_max_age=600,
             conn_health_checks=True,
         )
     }
@@ -195,4 +195,5 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
 
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
