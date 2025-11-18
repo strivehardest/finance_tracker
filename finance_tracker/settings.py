@@ -186,10 +186,10 @@ else:
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='finance_tracker@gmail.com')
+    EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='trackerfinanace@gmail.com')
     EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-    DEFAULT_FROM_EMAIL = 'Finance Tracker <finance_tracker@gmail.com>'
-    SERVER_EMAIL = 'finance_tracker@gmail.com'
+    DEFAULT_FROM_EMAIL = 'Finance Tracker <trackerfinanace@gmail.com>'
+    SERVER_EMAIL = 'trackerfinanace@gmail.com'
     EMAIL_TIMEOUT = 10  # Timeout after 10 seconds
 
 # Allauth Email Settings
@@ -224,6 +224,7 @@ if not DEBUG:
     # Limit file upload size
     DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
     FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+
 
 
 
