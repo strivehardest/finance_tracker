@@ -214,3 +214,12 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Memory optimization for Render free tier
+if not DEBUG:
+    # Reduce database connections
+    DATABASES['default']['CONN_MAX_AGE'] = 60  # Reduce from 600
+    
+    # Limit file upload size
+    DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+    FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
