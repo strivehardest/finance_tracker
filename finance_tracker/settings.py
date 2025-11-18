@@ -216,14 +216,15 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Memory optimization for Render free tier
+# Optimize for low memory (Render free tier)
 if not DEBUG:
-    # Reduce database connections
-    DATABASES['default']['CONN_MAX_AGE'] = 60  # Reduce from 600
+    # Reduce database connection pool
+    DATABASES['default']['CONN_MAX_AGE'] = 0  # Don't pool connections
     
-    # Limit file upload size
-    DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
-    FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+    # Limit request body size
+    DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
+    FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
+
 
 
 
