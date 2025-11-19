@@ -191,6 +191,7 @@ else:
     DEFAULT_FROM_EMAIL = 'Finance Tracker <trackerfinanace@gmail.com>'
     SERVER_EMAIL = 'trackerfinanace@gmail.com'
     EMAIL_TIMEOUT = 30  # Timeout after 30 seconds
+    EMAIL_USE_LOCALTIME = False  # Reduce overhead
 
 # Allauth Email Settings
 ACCOUNT_EMAIL_REQUIRED = True
@@ -224,6 +225,7 @@ if not DEBUG:
     # Limit request body size
     DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
     FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
+
 
 
 
