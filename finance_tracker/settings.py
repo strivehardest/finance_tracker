@@ -190,7 +190,7 @@ else:
     EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
     DEFAULT_FROM_EMAIL = 'Finance Tracker <trackerfinanace@gmail.com>'
     SERVER_EMAIL = 'trackerfinanace@gmail.com'
-    EMAIL_TIMEOUT = 10  # Timeout after 10 seconds
+    EMAIL_TIMEOUT = 30  # Timeout after 30 seconds
 
 # Allauth Email Settings
 ACCOUNT_EMAIL_REQUIRED = True
@@ -224,6 +224,7 @@ if not DEBUG:
     # Limit request body size
     DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
     FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
+
 
 
 
