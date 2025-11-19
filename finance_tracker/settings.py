@@ -164,6 +164,7 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Media files
 MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -225,6 +226,7 @@ if not DEBUG:
     # Limit request body size
     DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
     FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
+
 
 
 
