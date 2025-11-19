@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-secret-key-change-this-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost, finance-tracker-muiu.onrender.com').split(',')
 
@@ -224,6 +224,7 @@ if not DEBUG:
     # Limit request body size
     DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
     FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
+
 
 
 
