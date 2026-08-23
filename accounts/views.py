@@ -768,3 +768,27 @@ def delete_transaction(request, id):
         return redirect('transactions_list')
     
     return render(request, 'accounts/delete_transaction.html', {'transaction': transaction})
+
+
+def service_worker(request):
+    response = render(
+        request,
+        'pwa/sw.js',
+        {'STATIC_URL': settings.STATIC_URL},
+        content_type='application/javascript; charset=utf-8',
+    )
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Service-Worker-Allowed'] = '/'
+    return response
+
+
+def web_manifest(request):
+    return render(
+        request,
+        'pwa/manifest.webmanifest',
+        content_type='application/manifest+json',
+    )
+
+
+def offline(request):
+    return render(request, 'pwa/offline.html')
