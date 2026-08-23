@@ -218,6 +218,14 @@ a { color: var(--brand-dark); }
     flex-shrink: 0;
     display: inline-block;
 }
+.avatar-wrap .avatar,
+.avatar-wrap .avatar-fallback {
+    position: absolute;
+    inset: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+}
 .avatar-wrap .avatar { z-index: 1; }
 .avatar-wrap-lg,
 .avatar-wrap-lg .avatar,
