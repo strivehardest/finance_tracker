@@ -182,76 +182,70 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    # Get user's preferred currency
     user_currency = request.user.preferred_currency
     currency_symbol = CURRENCY_SYMBOLS.get(user_currency, '₵')
-    
+    now = datetime.now()
+
     accounts = Account.objects.filter(user=request.user, is_active=True)
     total_balance = accounts.aggregate(Sum('balance'))['balance__sum'] or Decimal('0.00')
-    
     recent_transactions = Transaction.objects.filter(user=request.user)[:5]
-    
-    current_month = datetime.now().month
-    current_year = datetime.now().year
-    
+
     monthly_income = Transaction.objects.filter(
         user=request.user,
-        date__month=current_month,
-        date__year=current_year,
+        date__month=now.month,
+        date__year=now.year,
         category__type='income'
     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    
+
     monthly_expenses = Transaction.objects.filter(
         user=request.user,
-        date__month=current_month,
-        date__year=current_year,
+        date__month=now.month,
+        date__year=now.year,
         category__type='expense'
     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    
-    # Total income and expenses (all time)
+
     total_income = Transaction.objects.filter(
         user=request.user,
         category__type='income'
     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    
+
     total_expenses = Transaction.objects.filter(
         user=request.user,
         category__type='expense'
     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    
-    # Convert to user's preferred currency
+
     total_balance_converted = convert_currency(float(total_balance), 'GHS', user_currency)
     monthly_income_converted = convert_currency(float(monthly_income), 'GHS', user_currency)
     monthly_expenses_converted = convert_currency(float(monthly_expenses), 'GHS', user_currency)
     total_income_converted = convert_currency(float(total_income), 'GHS', user_currency)
     total_expenses_converted = convert_currency(float(total_expenses), 'GHS', user_currency)
-    
-    # Monthly data for chart (last 12 months) - simpler approach
+
     months_dict = {}
-    for i in range(12, 0, -1):
-        month_date = datetime.now().replace(month=i if i <= datetime.now().month else i, day=1)
-        month_key = month_date.strftime('%b')
-        months_dict[month_key] = {'income': 0, 'expense': 0}
-    
-    # Get all transactions and group them
+    year, month = now.year, now.month
+    for _ in range(12):
+        months_dict[datetime(year, month, 1).strftime('%b %Y')] = {'income': 0.0, 'expense': 0.0}
+        month -= 1
+        if month == 0:
+            month = 12
+            year -= 1
+    months_dict = dict(reversed(list(months_dict.items())))
+
     all_transactions = Transaction.objects.filter(user=request.user).values_list('date', 'category__type', 'amount')
     for trans_date, trans_type, trans_amount in all_transactions:
-        month_key = trans_date.strftime('%b')
+        month_key = trans_date.strftime('%b %Y')
         if month_key in months_dict:
             converted_amount = convert_currency(float(trans_amount), 'GHS', user_currency)
             if trans_type == 'income':
                 months_dict[month_key]['income'] += converted_amount
             else:
                 months_dict[month_key]['expense'] += converted_amount
-    
-    # Category breakdown for pie chart
+
     category_data = Transaction.objects.filter(
         user=request.user,
-        date__month=current_month,
-        date__year=current_year
+        date__month=now.month,
+        date__year=now.year
     ).values('category__name').annotate(total=Sum('amount')).order_by('-total')
-    
-    # Convert Decimal to float for JSON serialization
+
     category_data_list = []
     for item in category_data:
         converted_total = convert_currency(float(item['total']), 'GHS', user_currency) if item['total'] else 0
@@ -259,44 +253,27 @@ def dashboard(request):
             'category__name': item['category__name'],
             'total': converted_total
         })
-    
-    categories = Category.objects.filter(user=request.user)
-    
-    # Calculate net balance (income - expenses)
-    net_balance = total_income - total_expenses
-    net_balance_converted = total_income_converted - total_expenses_converted
-    
-    import json
-    monthly_json = json.dumps(months_dict)
-    category_json = json.dumps(category_data_list)
-    
+
+    for account in accounts:
+        account.display_balance = convert_currency(float(account.balance), 'GHS', user_currency)
+    for transaction in recent_transactions:
+        transaction.display_amount = convert_currency(float(transaction.amount), 'GHS', user_currency)
+
     context = {
-        'total_balance': total_balance,
         'total_balance_converted': round(total_balance_converted, 2),
         'accounts': accounts,
         'recent_transactions': recent_transactions,
-        'monthly_income': monthly_income,
-        'monthly_expenses': monthly_expenses,
         'monthly_income_converted': round(monthly_income_converted, 2),
         'monthly_expenses_converted': round(monthly_expenses_converted, 2),
-        'net_income': monthly_income - monthly_expenses,
         'net_income_converted': round(monthly_income_converted - monthly_expenses_converted, 2),
-        'total_income': total_income,
-        'total_expenses': total_expenses,
         'total_income_converted': round(total_income_converted, 2),
         'total_expenses_converted': round(total_expenses_converted, 2),
-        'net_balance': net_balance,
-        'net_balance_converted': round(net_balance_converted, 2),
-        'user_currency': user_currency,
+        'net_balance_converted': round(total_income_converted - total_expenses_converted, 2),
         'currency_symbol': currency_symbol,
-        'all_currencies': dict(request.user.CURRENCY_CHOICES),
-        'total_accounts': accounts.count(),
-        'total_categories': categories.count(),
-        'total_transactions': Transaction.objects.filter(user=request.user).count(),
-        'monthly_data': monthly_json,
-        'category_data': category_json,
+        'monthly_data': json.dumps(months_dict),
+        'category_data': json.dumps(category_data_list),
     }
-    
+
     return render(request, 'accounts/dashboard.html', context)
 
 @login_required
