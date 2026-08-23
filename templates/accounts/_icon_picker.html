@@ -1,0 +1,6 @@
+<label class="form-label">Icon</label>
+<input type="hidden" id="id_icon" name="icon" value="{{ form.icon.value|default:'fa-tag' }}">
+<input type="text" id="icon-search" class="form-control mb-2" placeholder="Search icons">
+<div id="icon-grid" class="icon-pick mb-3"></div>
+<script src="{% url 'icon_picker_js' %}"></script>
+<script>document.addEventListener('DOMContentLoaded', function () { initIconPicker('id_icon'); });</script>

@@ -145,9 +145,9 @@ class ProfileForm(forms.ModelForm):
                 'placeholder': 'Email Address',
                 'readonly': 'readonly'
             }),
-            'profile_picture': forms.FileInput(attrs={
+            'profile_picture': forms.ClearableFileInput(attrs={
                 'class': 'form-control',
-                'accept': 'image/png,image/jpeg',
+                'accept': 'image/png,image/jpeg,image/webp',
                 'id': 'profilePictureInput'
             }),
             'date_of_birth': forms.DateInput(attrs={
@@ -191,30 +191,30 @@ class ProfileForm(forms.ModelForm):
         return dob
 
     def clean_profile_picture(self):
-        """Validate profile picture"""
         picture = self.cleaned_data.get('profile_picture')
-        if picture:
-            # Check file size (max 5MB)
-            if picture.size > 5 * 1024 * 1024:
-                raise ValidationError('Profile picture must be less than 5MB.')
-            
-            # Check file type
-            if hasattr(picture, 'content_type') and picture.content_type:
-                if not picture.content_type.startswith('image'):
-                    raise ValidationError('Please upload a valid image file.')
-            
-            # Check file extension
-            filename = picture.name.lower()
-            if not (filename.endswith(('.png', '.jpg', '.jpeg'))):
-                raise ValidationError('Please upload a PNG or JPG image file.')
-            
-            # Try to open and validate the image
-            try:
-                img = Image.open(picture)
-                img.verify()
-            except Exception as e:
-                raise ValidationError('Invalid image file. Please upload a valid PNG or JPG.')
-        
+        if picture is False:
+            return None
+        if not picture:
+            return self.instance.profile_picture
+
+        if getattr(picture, 'size', 0) > 5 * 1024 * 1024:
+            raise ValidationError('Profile picture must be less than 5MB.')
+
+        content_type = getattr(picture, 'content_type', '') or ''
+        if content_type and not content_type.startswith('image'):
+            raise ValidationError('Please upload a valid image file.')
+
+        filename = (getattr(picture, 'name', '') or '').lower()
+        if filename and not filename.endswith(('.png', '.jpg', '.jpeg', '.webp')):
+            raise ValidationError('Please upload a PNG, JPG, or WebP image.')
+
+        try:
+            img = Image.open(picture)
+            img.verify()
+            picture.seek(0)
+        except Exception:
+            raise ValidationError('Invalid image file. Please upload a valid PNG or JPG.')
+
         return picture
 
     def clean_phone_number(self):

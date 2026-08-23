@@ -1,228 +1,42 @@
 {% extends 'base.html' %}
 
-{% block title %}Add Category - Finance Tracker{% endblock %}
-
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
+    <div class="col-lg-6">
         <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0"><i class="fas fa-plus text-primary me-2"></i>Add New Category</h4>
-            </div>
+            <div class="card-header">Add category</div>
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
-                    
                     <div class="mb-3">
-                        <label for="{{ form.name.id_for_label }}" class="form-label">Category Name *</label>
+                        <label class="form-label">Name</label>
                         {{ form.name }}
                     </div>
-                    
                     <div class="mb-3">
-                        <label for="{{ form.type.id_for_label }}" class="form-label">Category Type *</label>
+                        <label class="form-label">Type</label>
                         {{ form.type }}
                     </div>
-                    
-                    <div class="mb-4">
-                        <label class="form-label">Icon *</label>
-                        <input type="hidden" id="{{ form.icon.id_for_label }}" name="icon" value="{{ form.icon.value|default:'' }}">
-                        
-                        <div class="mb-3">
-                            <input type="text" id="icon-search" class="form-control" placeholder="Search icons..." autocomplete="off">
-                        </div>
-                        
-                        <div id="icon-grid" class="row g-2">
-                            <!-- Icons will be populated by JavaScript -->
-                        </div>
-                        
-                        <div id="selected-icon-display" class="mt-3 p-3 bg-light border rounded text-center" style="display: none;">
-                            <p class="mb-1 text-muted">Selected Icon:</p>
-                            <span id="selected-icon" style="font-size: 2.5rem;"></span>
-                        </div>
-                    </div>
-                    
                     <div class="mb-3">
-                        <label for="{{ form.color.id_for_label }}" class="form-label">Color</label>
+                        {% include 'accounts/_icon_picker.html' %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Color</label>
                         {{ form.color }}
                     </div>
-                    
                     <div class="mb-3">
-                        <label for="{{ form.budget_limit.id_for_label }}" class="form-label">Budget Limit (Optional)</label>
-                        <div class="input-group">
-                            <span class="input-group-text">{{ user.preferred_currency }}</span>
-                            {{ form.budget_limit }}
-                        </div>
-                        <small class="form-text text-muted">Set a monthly spending limit for expense categories</small>
+                        <label class="form-label">Monthly budget (optional)</label>
+                        {{ form.budget_limit }}
                     </div>
-                    
                     {% if form.errors %}
-                        <div class="alert alert-danger">
-                            {{ form.errors }}
-                        </div>
+                        <div class="alert alert-danger">{{ form.errors }}</div>
                     {% endif %}
-                    
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{% url 'categories_list' %}" class="btn btn-secondary me-md-2">Cancel</a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i>Save Category
-                        </button>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'categories_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-    .icon-btn {
-        aspect-ratio: 1;
-        border: 2px solid #dee2e6;
-        border-radius: 0.375rem;
-        background: white;
-        font-size: 1.75rem;
-        cursor: pointer;
-        transition: all 0.2s;
-        padding: 0.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .icon-btn:hover {
-        border-color: #007bff;
-        background-color: #f0f7ff;
-        transform: scale(1.05);
-    }
-    
-    .icon-btn.active {
-        border-color: #007bff;
-        background-color: #007bff;
-        color: white;
-    }
-</style>
-
-<script>
-const iconsList = [
-    // Income Icons
-    { code: '💰', name: 'Money', category: 'income' },
-    { code: '💻', name: 'Freelance', category: 'income' },
-    { code: '💵', name: 'Dollar', category: 'income' },
-    { code: '💴', name: 'Yen', category: 'income' },
-    { code: '💶', name: 'Euro', category: 'income' },
-    { code: '💷', name: 'Pound', category: 'income' },
-    { code: '💸', name: 'Money Flying', category: 'income' },
-    { code: '💳', name: 'Credit Card', category: 'income' },
-    { code: '🏦', name: 'Bank', category: 'income' },
-    { code: '📈', name: 'Chart Up', category: 'income' },
-    { code: '📊', name: 'Chart', category: 'income' },
-    { code: '👨‍💼', name: 'Business', category: 'income' },
-    { code: '👩‍💼', name: 'Business Woman', category: 'income' },
-    { code: '🤝', name: 'Handshake', category: 'income' },
-    { code: '🎓', name: 'Education', category: 'income' },
-    { code: '⭐', name: 'Star', category: 'income' },
-    
-    // Expense Icons
-    { code: '🍽️', name: 'Food', category: 'expense' },
-    { code: '🍔', name: 'Burger', category: 'expense' },
-    { code: '🍕', name: 'Pizza', category: 'expense' },
-    { code: '🍜', name: 'Noodles', category: 'expense' },
-    { code: '☕', name: 'Coffee', category: 'expense' },
-    { code: '🍺', name: 'Beer', category: 'expense' },
-    { code: '🚗', name: 'Car', category: 'expense' },
-    { code: '🚕', name: 'Taxi', category: 'expense' },
-    { code: '🚙', name: 'SUV', category: 'expense' },
-    { code: '⛽', name: 'Gas', category: 'expense' },
-    { code: '🚌', name: 'Bus', category: 'expense' },
-    { code: '🚎', name: 'Bus 2', category: 'expense' },
-    { code: '✈️', name: 'Flight', category: 'expense' },
-    { code: '🏨', name: 'Hotel', category: 'expense' },
-    { code: '🎬', name: 'Movie', category: 'expense' },
-    { code: '🎮', name: 'Gaming', category: 'expense' },
-    { code: '🎵', name: 'Music', category: 'expense' },
-    { code: '📚', name: 'Books', category: 'expense' },
-    { code: '🏥', name: 'Hospital', category: 'expense' },
-    { code: '💊', name: 'Medicine', category: 'expense' },
-    { code: '🛍️', name: 'Shopping', category: 'expense' },
-    { code: '👗', name: 'Dress', category: 'expense' },
-    { code: '👔', name: 'Suit', category: 'expense' },
-    { code: '👠', name: 'Shoes', category: 'expense' },
-    { code: '💄', name: 'Makeup', category: 'expense' },
-    { code: '⚡', name: 'Electricity', category: 'expense' },
-    { code: '💧', name: 'Water', category: 'expense' },
-    { code: '🔥', name: 'Heat', category: 'expense' },
-    { code: '📞', name: 'Phone', category: 'expense' },
-    { code: '📡', name: 'Internet', category: 'expense' },
-    { code: '🏠', name: 'House', category: 'expense' },
-    { code: '🔑', name: 'Rent', category: 'expense' },
-    { code: '🧹', name: 'Cleaning', category: 'expense' },
-    { code: '🛏️', name: 'Furniture', category: 'expense' },
-    { code: '🐕', name: 'Pet', category: 'expense' },
-    { code: '🎄', name: 'Holiday', category: 'expense' },
-    { code: '🎁', name: 'Gift', category: 'expense' },
-];
-
-document.addEventListener('DOMContentLoaded', function() {
-    const iconGrid = document.getElementById('icon-grid');
-    const iconInput = document.getElementById('id_icon');
-    const selectedIconDisplay = document.getElementById('selected-icon-display');
-    const selectedIconSpan = document.getElementById('selected-icon');
-    const iconSearch = document.getElementById('icon-search');
-    
-    // Render all icons
-    function renderIcons(filter = '') {
-        iconGrid.innerHTML = '';
-        const filtered = iconsList.filter(icon => 
-            icon.code.includes(filter) || icon.name.toLowerCase().includes(filter.toLowerCase())
-        );
-        
-        filtered.forEach(icon => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'icon-btn col-3 col-sm-2';
-            btn.innerHTML = icon.code;
-            btn.title = icon.name;
-            
-            if (iconInput.value === icon.code) {
-                btn.classList.add('active');
-            }
-            
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                // Remove active class from all buttons
-                document.querySelectorAll('.icon-btn').forEach(b => b.classList.remove('active'));
-                
-                // Add active class to clicked button
-                btn.classList.add('active');
-                
-                // Update hidden input
-                iconInput.value = icon.code;
-                
-                // Show selected icon
-                selectedIconSpan.textContent = icon.code;
-                selectedIconDisplay.style.display = 'block';
-            });
-            
-            iconGrid.appendChild(btn);
-        });
-    }
-    
-    // Initial render
-    renderIcons();
-    
-    // Show selected icon if one is already set
-    if (iconInput.value) {
-        const selectedIcon = iconsList.find(icon => icon.code === iconInput.value);
-        if (selectedIcon) {
-            selectedIconSpan.textContent = selectedIcon.code;
-            selectedIconDisplay.style.display = 'block';
-        }
-    }
-    
-    // Search functionality
-    iconSearch.addEventListener('input', function(e) {
-        renderIcons(e.target.value);
-    });
-});
-</script>
 {% endblock %}

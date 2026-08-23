@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">Export transactions</div>
+            <div class="card-body">
+                <p class="text-muted">{{ period_label }} · {{ count }} record{{ count|pluralize }}</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Period</label>
+                        <select name="period" id="period" class="form-select">
+                            {% for value, label in periods %}
+                                <option value="{{ value }}" {% if period == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row g-3 mb-3" id="customDates">
+                        <div class="col-md-6">
+                            <label class="form-label">From</label>
+                            <input type="date" name="start" class="form-control" value="{{ start }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">To</label>
+                            <input type="date" name="end" class="form-control" value="{{ end }}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Format</label>
+                        <div class="d-flex gap-3">
+                            <label class="form-check"><input class="form-check-input" type="radio" name="format" value="pdf" checked> PDF</label>
+                            <label class="form-check"><input class="form-check-input" type="radio" name="format" value="excel"> Excel</label>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Email (for send)</label>
+                        <input type="email" name="email" class="form-control" value="{{ default_email }}" placeholder="you@example.com">
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" name="action" value="download" class="btn btn-primary">Download</button>
+                        <button type="submit" name="action" value="email" class="btn btn-outline-primary">Send by email</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const period = document.getElementById('period');
+    const custom = document.getElementById('customDates');
+    function toggleDates() {
+        custom.style.display = period.value === 'custom' ? 'flex' : 'none';
+    }
+    period.addEventListener('change', toggleDates);
+    toggleDates();
+</script>
+{% endblock %}

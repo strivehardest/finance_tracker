@@ -14,6 +14,7 @@ urlpatterns = [
     path('pwa/icon-512.png', views.pwa_icon_512, name='pwa_icon_512'),
     path('pwa/icon-maskable.png', views.pwa_icon_maskable, name='pwa_icon_maskable'),
     path('app.css', views.app_css, name='app_css'),
+    path('icon-picker.js', views.icon_picker_js, name='icon_picker_js'),
     path('login/', views.login_view, name='login'),
     path('signup/', views.signup_view, name='signup'),
     path('logout/', views.logout_view, name='logout'),
@@ -34,6 +35,7 @@ urlpatterns = [
     path('transactions/add/', views.add_transaction, name='add_transaction'),
     path('transactions/<int:id>/edit/', views.edit_transaction, name='edit_transaction'),
     path('transactions/<int:id>/delete/', views.delete_transaction, name='delete_transaction'),
+    path('transactions/export/', views.export_transactions, name='export_transactions'),
     path('transactions/export/excel/', views.export_transactions_excel, name='export_excel'),
     path('transactions/export/pdf/', views.export_transactions_pdf, name='export_pdf'),
     

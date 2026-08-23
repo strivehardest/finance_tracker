@@ -1,48 +1,40 @@
 {% extends 'base.html' %}
-
-{% block title %}Dashboard - Finance Tracker{% endblock %}
+{% load ui_tags %}
 
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
     <div>
-        <div class="page-kicker">Overview</div>
-        <h1 class="h3 mb-0">Hello{% if user.first_name %}, {{ user.first_name }}{% endif %}</h1>
+        <div class="text-muted small">Overview</div>
+        <h2 class="h4 mb-0">Hello{% if user.first_name %}, {{ user.first_name }}{% endif %}</h2>
     </div>
-    <div class="d-flex gap-2">
-        <a href="{% url 'add_transaction' %}" class="btn btn-primary">Add transaction</a>
-        <div class="btn-group">
-            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                Export
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="{% url 'export_excel' %}">Excel</a></li>
-                <li><a class="dropdown-item" href="{% url 'export_pdf' %}">PDF</a></li>
-            </ul>
-        </div>
-    </div>
+    <a href="{% url 'add_transaction' %}" class="btn btn-primary">+ Add transaction</a>
 </div>
 
 <div class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="stat-card">
+        <div class="kpi" style="--kpi:#6d28d9">
+            <div class="kpi-icon"><i class="fas fa-wallet"></i></div>
             <div class="label">Balance</div>
             <div class="value">{{ currency_symbol }}{{ total_balance_converted|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card">
+        <div class="kpi" style="--kpi:#15803d">
+            <div class="kpi-icon"><i class="fas fa-arrow-up"></i></div>
             <div class="label">Income this month</div>
             <div class="value income">{{ currency_symbol }}{{ monthly_income_converted|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card">
+        <div class="kpi" style="--kpi:#ea580c">
+            <div class="kpi-icon"><i class="fas fa-arrow-down"></i></div>
             <div class="label">Expenses this month</div>
             <div class="value expense">{{ currency_symbol }}{{ monthly_expenses_converted|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card">
+        <div class="kpi" style="--kpi:#2563eb">
+            <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
             <div class="label">Net this month</div>
             <div class="value {% if net_income_converted >= 0 %}income{% else %}expense{% endif %}">
                 {{ currency_symbol }}{{ net_income_converted|floatformat:2 }}
@@ -51,33 +43,23 @@
     </div>
 </div>
 
-<p class="text-muted small mb-4">
-    All time: {{ currency_symbol }}{{ total_income_converted|floatformat:2 }} in,
-    {{ currency_symbol }}{{ total_expenses_converted|floatformat:2 }} out,
-    {{ currency_symbol }}{{ net_balance_converted|floatformat:2 }} net
-</p>
-
 <div class="row g-3 mb-4">
-    <div class="col-lg-6">
+    <div class="col-lg-8">
         <div class="card h-100">
-            <div class="card-header">Monthly income and expenses</div>
-            <div class="card-body">
-                <canvas id="monthlyChart"></canvas>
-            </div>
+            <div class="card-header">Income vs expenses</div>
+            <div class="card-body"><canvas id="monthlyChart"></canvas></div>
         </div>
     </div>
-    <div class="col-lg-6">
+    <div class="col-lg-4">
         <div class="card h-100">
             <div class="card-header">This month by category</div>
-            <div class="card-body">
-                <canvas id="categoryChart"></canvas>
-            </div>
+            <div class="card-body"><canvas id="categoryChart"></canvas></div>
         </div>
     </div>
 </div>
 
 <div class="row g-3">
-    <div class="col-md-8">
+    <div class="col-lg-8">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>Recent transactions</span>
@@ -85,43 +67,25 @@
             </div>
             <div class="card-body">
                 {% if recent_transactions %}
-                    <div class="table-responsive">
-                        <table class="table mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Description</th>
-                                    <th>Category</th>
-                                    <th>Account</th>
-                                    <th class="text-end">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for transaction in recent_transactions %}
-                                    <tr>
-                                        <td>{{ transaction.date|date:"M d, Y" }}</td>
-                                        <td>{{ transaction.description }}</td>
-                                        <td>{{ transaction.category.icon }} {{ transaction.category.name }}</td>
-                                        <td>{{ transaction.account.name }}</td>
-                                        <td class="text-end {% if transaction.category.type == 'income' %}income{% else %}expense{% endif %}">
-                                            {% if transaction.category.type == 'income' %}+{% else %}-{% endif %}{{ currency_symbol }}{{ transaction.display_amount|floatformat:2 }}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                    {% for transaction in recent_transactions %}
+                        <div class="tx-row">
+                            {% cat_icon transaction.category %}
+                            <div>
+                                <div class="fw-semibold">{{ transaction.description }}</div>
+                                <div class="tx-meta">{{ transaction.category.name }} · {{ transaction.date|date:"M d, Y" }}</div>
+                            </div>
+                            <div class="tx-amount {% if transaction.category.type == 'income' %}income{% else %}expense{% endif %}">
+                                {% if transaction.category.type == 'income' %}+{% else %}-{% endif %}{{ currency_symbol }}{{ transaction.display_amount|floatformat:2 }}
+                            </div>
+                        </div>
+                    {% endfor %}
                 {% else %}
-                    <p class="text-muted mb-0">
-                        No transactions yet.
-                        <a href="{% url 'add_transaction' %}">Add one</a>
-                    </p>
+                    <p class="text-muted mb-0">No transactions yet. <a href="{% url 'add_transaction' %}">Add one</a></p>
                 {% endif %}
             </div>
         </div>
     </div>
-
-    <div class="col-md-4">
+    <div class="col-lg-4">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>Accounts</span>
@@ -137,10 +101,7 @@
                         <span>{{ currency_symbol }}{{ account.display_balance|floatformat:2 }}</span>
                     </div>
                 {% empty %}
-                    <p class="text-muted mb-0">
-                        No accounts yet.
-                        <a href="{% url 'add_account' %}">Add one</a>
-                    </p>
+                    <p class="text-muted mb-0">No accounts yet. <a href="{% url 'add_account' %}">Add one</a></p>
                 {% endfor %}
             </div>
         </div>
@@ -152,87 +113,33 @@
 <script>
     const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
     const monthlyData = JSON.parse('{{ monthly_data|escapejs }}');
-
     const months = Object.keys(monthlyData);
-    const incomeData = months.map(month => monthlyData[month].income);
-    const expenseData = months.map(month => monthlyData[month].expense);
-
     new Chart(monthlyCtx, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: months,
             datasets: [
-                {
-                    label: 'Income',
-                    data: incomeData,
-                    borderColor: '#15803d',
-                    backgroundColor: 'rgba(21, 128, 61, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: true,
-                },
-                {
-                    label: 'Expenses',
-                    data: expenseData,
-                    borderColor: '#b91c1c',
-                    backgroundColor: 'rgba(185, 28, 28, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: true,
-                }
+                { label: 'Income', data: months.map(m => monthlyData[m].income), backgroundColor: '#6d28d9', borderRadius: 6 },
+                { label: 'Expenses', data: months.map(m => monthlyData[m].expense), backgroundColor: '#f57c00', borderRadius: 6 }
             ]
         },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'top' }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
+        options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
     });
 
     const categoryCanvas = document.getElementById('categoryChart');
     const categoryData = JSON.parse('{{ category_data|escapejs }}');
     const categoryLabels = categoryData.map(item => item.category__name);
     const categoryAmounts = categoryData.map(item => item.total);
-    const categoryColors = [
-        '#f57c00', '#1565c0', '#2e7d32', '#c62828', '#6a1b9a',
-        '#00838f', '#ef6c00', '#37474f', '#ad1457', '#558b2f'
-    ];
-
     if (!categoryLabels.length) {
-        categoryCanvas.replaceWith(Object.assign(document.createElement('p'), {
-            className: 'text-muted mb-0',
-            textContent: 'No transactions this month.'
-        }));
+        categoryCanvas.replaceWith(Object.assign(document.createElement('p'), { className: 'text-muted mb-0', textContent: 'No transactions this month.' }));
     } else {
         new Chart(categoryCanvas.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: categoryLabels,
-                datasets: [{
-                    data: categoryAmounts,
-                    backgroundColor: categoryColors.slice(0, categoryLabels.length),
-                    borderColor: '#fff',
-                    borderWidth: 2
-                }]
+                datasets: [{ data: categoryAmounts, backgroundColor: ['#f57c00','#6d28d9','#2563eb','#15803d','#ea580c','#0f766e','#b91c1c','#ca8a04'], borderWidth: 0 }]
             },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const value = Number(context.parsed).toFixed(2);
-                                return context.label + ': {{ currency_symbol }}' + value;
-                            }
-                        }
-                    }
-                }
-            }
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
         });
     }
 </script>

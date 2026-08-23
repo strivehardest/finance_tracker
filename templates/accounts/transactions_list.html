@@ -1,158 +1,101 @@
 {% extends 'base.html' %}
-
-{% block title %}Transactions - Finance Tracker{% endblock %}
+{% load ui_tags %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-exchange-alt text-primary me-2"></i>Transactions</h2>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <div class="text-muted small">Records</div>
+        <h2 class="h4 mb-0">Transactions</h2>
+    </div>
     <div class="d-flex gap-2">
-        <a href="{% url 'add_transaction' %}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Add Transaction
-        </a>
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-download me-1"></i>Export
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="{% url 'export_excel' %}">
-                    <i class="fas fa-file-excel me-2"></i>Export to Excel
-                </a></li>
-                <li><a class="dropdown-item" href="{% url 'export_pdf' %}">
-                    <i class="fas fa-file-pdf me-2"></i>Export to PDF
-                </a></li>
-            </ul>
-        </div>
+        <a href="{% url 'add_transaction' %}" class="btn btn-primary">+ Add</a>
+        <a href="{% url 'export_transactions' %}" class="btn btn-outline-primary">Export</a>
     </div>
 </div>
 
-<!-- Filters -->
 <div class="card mb-4">
     <div class="card-body">
-        <form method="get" class="row g-3">
-            <div class="col-md-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">From</label>
+                <input type="date" name="from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To</label>
+                <input type="date" name="to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="col-md-2">
                 <label class="form-label">Category</label>
                 <select name="category" class="form-select">
-                    <option value="">All Categories</option>
+                    <option value="">All</option>
                     {% for category in categories %}
-                        <option value="{{ category.id }}" {% if current_category == category.id|stringformat:'s' %}selected{% endif %}>
-                            {{ category.icon }} {{ category.name }}
-                        </option>
+                        <option value="{{ category.id }}" {% if current_category == category.id|stringformat:'s' %}selected{% endif %}>{{ category.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Account</label>
                 <select name="account" class="form-select">
-                    <option value="">All Accounts</option>
+                    <option value="">All</option>
                     {% for account in accounts %}
-                        <option value="{{ account.id }}" {% if current_account == account.id|stringformat:'s' %}selected{% endif %}>
-                            {{ account.name }}
-                        </option>
+                        <option value="{{ account.id }}" {% if current_account == account.id|stringformat:'s' %}selected{% endif %}>{{ account.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <label class="form-label">Search</label>
-                <input type="text" name="search" class="form-control" placeholder="Search transactions..." value="{{ search_term }}">
+                <input type="text" name="search" class="form-control" value="{{ search_term }}" placeholder="Description">
             </div>
-            
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-outline-primary w-100">
-                    <i class="fas fa-filter me-1"></i>Filter
-                </button>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Transactions Table -->
 <div class="card">
     <div class="card-body">
         {% if transactions %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Category</th>
-                            <th>Account</th>
-                            <th class="text-end">Amount</th>
-                            <th class="text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for transaction in transactions %}
-                            <tr>
-                                <td>{{ transaction.date|date:"M d, Y" }}</td>
-                                <td>
-                                    <strong>{{ transaction.description }}</strong>
-                                    {% if transaction.notes %}
-                                        <br><small class="text-muted">{{ transaction.notes }}</small>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge" style="background-color: {{ transaction.category.color }};">
-                                        {{ transaction.category.icon }} {{ transaction.category.name }}
-                                    </span>
-                                </td>
-                                <td>{{ transaction.account.name }}</td>
-                                <td class="text-end">
-                                    <span class="fw-bold {% if transaction.category.type == 'income' %}income{% else %}expense{% endif %}">
-                                        {% if transaction.category.type == 'income' %}+{% else %}-{% endif %}GH₵{{ transaction.amount|floatformat:2 }}
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{% url 'edit_transaction' transaction.id %}" class="btn btn-outline-warning" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="{% url 'delete_transaction' transaction.id %}" class="btn btn-outline-danger" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Pagination -->
+            {% for transaction in transactions %}
+                <div class="tx-row">
+                    {% cat_icon transaction.category %}
+                    <div>
+                        <div class="fw-semibold">{{ transaction.description }}</div>
+                        <div class="tx-meta">{{ transaction.category.name }} · {{ transaction.account.name }} · {{ transaction.date|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="tx-amount {% if transaction.category.type == 'income' %}income{% else %}expense{% endif %}">
+                        {% if transaction.category.type == 'income' %}+{% else %}-{% endif %}{{ currency_symbol }}{{ transaction.amount|floatformat:2 }}
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'edit_transaction' transaction.id %}" class="btn btn-outline-secondary" title="Edit"><i class="fas fa-pen"></i></a>
+                        <a href="{% url 'delete_transaction' transaction.id %}" class="btn btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></a>
+                    </div>
+                </div>
+            {% endfor %}
+
             {% if transactions.has_other_pages %}
-                <nav aria-label="Transactions pagination">
-                    <ul class="pagination justify-content-center">
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center mb-0">
                         {% if transactions.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ transactions.previous_page_number }}">Previous</a>
+                                <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ transactions.previous_page_number }}">Previous</a>
                             </li>
                         {% endif %}
-                        
                         {% for page_num in transactions.paginator.page_range %}
                             <li class="page-item {% if page_num == transactions.number %}active{% endif %}">
-                                <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                                <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_num }}">{{ page_num }}</a>
                             </li>
                         {% endfor %}
-                        
                         {% if transactions.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ transactions.next_page_number }}">Next</a>
+                                <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ transactions.next_page_number }}">Next</a>
                             </li>
                         {% endif %}
                     </ul>
                 </nav>
             {% endif %}
         {% else %}
-            <div class="text-center py-5">
-                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
-                <h5>No transactions found</h5>
-                <p class="text-muted">Start by adding your first transaction!</p>
-                <a href="{% url 'add_transaction' %}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>Add Transaction
-                </a>
-            </div>
+            <p class="text-muted mb-0">No transactions match these filters. <a href="{% url 'add_transaction' %}">Add one</a></p>
         {% endif %}
     </div>
 </div>

@@ -13,6 +13,15 @@ from django.conf import settings
 from datetime import datetime, timedelta
 from decimal import Decimal
 from .models import User, Account, Category, Transaction
+from .utils import (
+    PERIOD_CHOICES,
+    build_excel_report,
+    build_pdf_report,
+    email_report,
+    filter_transactions_period,
+    parse_date,
+    profile_photo_url,
+)
 from .forms import SignUpForm, TransactionForm, AccountForm, CategoryForm, ProfileForm
 import requests
 import json
@@ -273,42 +282,59 @@ def dashboard(request):
         'currency_symbol': currency_symbol,
         'monthly_data': json.dumps(months_dict),
         'category_data': json.dumps(category_data_list),
+        'page_title': 'Dashboard',
     }
 
     return render(request, 'accounts/dashboard.html', context)
 
 @login_required
 def transactions_list(request):
-    transactions = Transaction.objects.filter(user=request.user)
-    
+    transactions = Transaction.objects.filter(user=request.user).select_related('category', 'account')
+
     category_filter = request.GET.get('category')
     if category_filter:
         transactions = transactions.filter(category_id=category_filter)
-    
+
     account_filter = request.GET.get('account')
     if account_filter:
         transactions = transactions.filter(account_id=account_filter)
-    
+
     search = request.GET.get('search')
     if search:
         transactions = transactions.filter(
-            Q(description__icontains=search) | 
+            Q(description__icontains=search) |
             Q(notes__icontains=search)
         )
-    
-    paginator = Paginator(transactions, 20)
+
+    date_from = request.GET.get('from')
+    date_to = request.GET.get('to')
+    parsed_from = parse_date(date_from)
+    parsed_to = parse_date(date_to)
+    if parsed_from:
+        transactions = transactions.filter(date__gte=parsed_from)
+    if parsed_to:
+        transactions = transactions.filter(date__lte=parsed_to)
+
+    paginator = Paginator(transactions, 12)
     page = request.GET.get('page')
-    transactions = paginator.get_page(page)
-    
+    page_obj = paginator.get_page(page)
+
+    query = request.GET.copy()
+    query.pop('page', None)
+
     context = {
-        'transactions': transactions,
+        'transactions': page_obj,
         'categories': Category.objects.filter(user=request.user),
         'accounts': Account.objects.filter(user=request.user, is_active=True),
         'current_category': category_filter,
         'current_account': account_filter,
-        'search_term': search,
+        'search_term': search or '',
+        'date_from': date_from or '',
+        'date_to': date_to or '',
+        'querystring': query.urlencode(),
+        'currency_symbol': CURRENCY_SYMBOLS.get(request.user.preferred_currency, '₵'),
+        'page_title': 'Transactions',
     }
-    
     return render(request, 'accounts/transactions_list.html', context)
 
 @login_required
@@ -416,14 +442,14 @@ def delete_category(request, pk):
 
 def create_default_categories(user):
     default_categories = [
-        {'name': 'Salary', 'type': 'income', 'icon': '💰', 'color': '#28a745'},
-        {'name': 'Freelance', 'type': 'income', 'icon': '💻', 'color': '#17a2b8'},
-        {'name': 'Food', 'type': 'expense', 'icon': '🍽️', 'color': '#fd7e14'},
-        {'name': 'Transport', 'type': 'expense', 'icon': '🚗', 'color': '#6610f2'},
-        {'name': 'Entertainment', 'type': 'expense', 'icon': '🎬', 'color': '#e83e8c'},
-        {'name': 'Utilities', 'type': 'expense', 'icon': '⚡', 'color': '#dc3545'},
-        {'name': 'Healthcare', 'type': 'expense', 'icon': '🏥', 'color': '#20c997'},
-        {'name': 'Shopping', 'type': 'expense', 'icon': '🛍️', 'color': '#ffc107'},
+        {'name': 'Salary', 'type': 'income', 'icon': 'fa-money-bill-wave', 'color': '#15803d'},
+        {'name': 'Freelance', 'type': 'income', 'icon': 'fa-laptop', 'color': '#0f766e'},
+        {'name': 'Food', 'type': 'expense', 'icon': 'fa-utensils', 'color': '#ea580c'},
+        {'name': 'Transport', 'type': 'expense', 'icon': 'fa-car', 'color': '#4f46e5'},
+        {'name': 'Entertainment', 'type': 'expense', 'icon': 'fa-film', 'color': '#c026d3'},
+        {'name': 'Utilities', 'type': 'expense', 'icon': 'fa-bolt', 'color': '#ca8a04'},
+        {'name': 'Healthcare', 'type': 'expense', 'icon': 'fa-heartbeat', 'color': '#dc2626'},
+        {'name': 'Shopping', 'type': 'expense', 'icon': 'fa-shopping-bag', 'color': '#2563eb'},
     ]
     
     for cat_data in default_categories:
@@ -465,8 +491,10 @@ def profile_view(request):
     
     context = {
         'user': request.user,
-        'has_profile_picture': bool(request.user.profile_picture),
+        'has_profile_picture': bool(profile_photo_url(request.user)),
+        'profile_photo_url': profile_photo_url(request.user),
         'age': age,
+        'page_title': 'Profile',
     }
     return render(request, 'accounts/profile.html', context)
 
@@ -490,196 +518,68 @@ def edit_profile(request):
     context = {
         'form': form,
         'user': request.user,
-        'has_profile_picture': bool(request.user.profile_picture),
+        'has_profile_picture': bool(profile_photo_url(request.user)),
+        'profile_photo_url': profile_photo_url(request.user),
+        'page_title': 'Edit profile',
     }
     return render(request, 'accounts/edit_profile.html', context)
 
 @login_required
+def export_transactions(request):
+    qs = Transaction.objects.filter(user=request.user).select_related('category', 'account').order_by('-date')
+    period = request.POST.get('period') or request.GET.get('period') or 'this_month'
+    start = request.POST.get('start') or request.GET.get('start')
+    end = request.POST.get('end') or request.GET.get('end')
+    filtered, _start, _end, label = filter_transactions_period(qs, period, start, end)
+
+    if request.method == 'POST':
+        fmt = request.POST.get('format', 'pdf')
+        action = request.POST.get('action', 'download')
+        if fmt == 'excel':
+            content = build_excel_report(request.user, filtered, label)
+            filename = f'transactions_{datetime.now():%Y%m%d}.xlsx'
+            mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        else:
+            content = build_pdf_report(request.user, filtered, label)
+            filename = f'transactions_{datetime.now():%Y%m%d}.pdf'
+            mime = 'application/pdf'
+
+        if action == 'email':
+            to_email = (request.POST.get('email') or request.user.email or '').strip()
+            if not to_email:
+                messages.error(request, 'Enter an email address.')
+            else:
+                try:
+                    email_report(request.user, filename, content, mime, label, to_email)
+                    messages.success(request, f'Report sent to {to_email}.')
+                except Exception:
+                    messages.error(request, 'Could not send the email. Check mail settings and try again.')
+            return redirect('export_transactions')
+
+        response = HttpResponse(content, content_type=mime)
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    return render(request, 'accounts/export.html', {
+        'periods': PERIOD_CHOICES,
+        'period': period,
+        'start': start or '',
+        'end': end or '',
+        'count': filtered.count(),
+        'period_label': label,
+        'default_email': request.user.email,
+        'page_title': 'Export',
+    })
+
+
+@login_required
 def export_transactions_excel(request):
-    """Export transactions to Excel file"""
-    # Get all transactions for the user
-    transactions = Transaction.objects.filter(user=request.user).order_by('-date')
-    
-    # Create workbook
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Transactions"
-    
-    # Define styles
-    header_fill = PatternFill(start_color="f57c00", end_color="f57c00", fill_type="solid")
-    header_font = Font(bold=True, color="FFFFFF", size=12)
-    border = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
-    )
-    
-    # Add headers
-    headers = ['Date', 'Description', 'Category', 'Type', 'Amount', 'Account', 'Notes']
-    for col_num, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_num)
-        cell.value = header
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.border = border
-        cell.alignment = Alignment(horizontal='center', vertical='center')
-    
-    # Add data
-    for row_num, transaction in enumerate(transactions, 2):
-        ws.cell(row=row_num, column=1).value = transaction.date.strftime('%Y-%m-%d')
-        ws.cell(row=row_num, column=2).value = transaction.description
-        ws.cell(row=row_num, column=3).value = transaction.category.name
-        ws.cell(row=row_num, column=4).value = transaction.category.type.capitalize()
-        ws.cell(row=row_num, column=5).value = float(transaction.amount)
-        ws.cell(row=row_num, column=6).value = transaction.account.name
-        ws.cell(row=row_num, column=7).value = transaction.notes
-        
-        # Apply formatting
-        for col in range(1, 8):
-            cell = ws.cell(row=row_num, column=col)
-            cell.border = border
-            if col == 5:  # Amount column
-                cell.number_format = '#,##0.00'
-    
-    # Adjust column widths
-    ws.column_dimensions['A'].width = 12
-    ws.column_dimensions['B'].width = 20
-    ws.column_dimensions['C'].width = 15
-    ws.column_dimensions['D'].width = 10
-    ws.column_dimensions['E'].width = 12
-    ws.column_dimensions['F'].width = 18
-    ws.column_dimensions['G'].width = 20
-    
-    # Add summary
-    summary_row = len(transactions) + 3
-    ws.cell(row=summary_row, column=1).value = "Summary"
-    ws.cell(row=summary_row, column=1).font = Font(bold=True, size=11)
-    
-    total_income = transactions.filter(category__type='income').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    total_expenses = transactions.filter(category__type='expense').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    
-    ws.cell(row=summary_row + 1, column=1).value = "Total Income:"
-    ws.cell(row=summary_row + 1, column=2).value = float(total_income)
-    ws.cell(row=summary_row + 1, column=2).font = Font(color="008000", bold=True)
-    ws.cell(row=summary_row + 1, column=2).number_format = '#,##0.00'
-    
-    ws.cell(row=summary_row + 2, column=1).value = "Total Expenses:"
-    ws.cell(row=summary_row + 2, column=2).value = float(total_expenses)
-    ws.cell(row=summary_row + 2, column=2).font = Font(color="FF0000", bold=True)
-    ws.cell(row=summary_row + 2, column=2).number_format = '#,##0.00'
-    
-    ws.cell(row=summary_row + 3, column=1).value = "Net Balance:"
-    ws.cell(row=summary_row + 3, column=2).value = float(total_income - total_expenses)
-    ws.cell(row=summary_row + 3, column=2).font = Font(bold=True, size=11)
-    ws.cell(row=summary_row + 3, column=2).number_format = '#,##0.00'
-    
-    # Prepare response
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="transactions_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
-    
-    wb.save(response)
-    return response
+    return redirect('export_transactions')
+
 
 @login_required
 def export_transactions_pdf(request):
-    """Export transactions to PDF file"""
-    # Get all transactions for the user
-    transactions = Transaction.objects.filter(user=request.user).order_by('-date')
-    
-    # Create PDF
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    elements = []
-    
-    # Styles
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#f57c00'),
-        spaceAfter=12,
-        fontName='Helvetica-Bold'
-    )
-    
-    subtitle_style = ParagraphStyle(
-        'CustomSubtitle',
-        parent=styles['Normal'],
-        fontSize=12,
-        textColor=colors.grey,
-        spaceAfter=12
-    )
-    
-    # Add title
-    elements.append(Paragraph("Transaction Report", title_style))
-    elements.append(Paragraph(f"Generated on {datetime.now().strftime('%B %d, %Y at %H:%M')}", subtitle_style))
-    elements.append(Paragraph(f"User: {request.user.get_full_name() or request.user.username}", subtitle_style))
-    elements.append(Spacer(1, 0.3*inch))
-    
-    # Prepare table data
-    data = [['Date', 'Description', 'Category', 'Type', 'Amount', 'Account']]
-    
-    for transaction in transactions:
-        data.append([
-            transaction.date.strftime('%Y-%m-%d'),
-            transaction.description[:25],  # Truncate for PDF
-            transaction.category.name,
-            transaction.category.type.capitalize(),
-            f"₵{float(transaction.amount):.2f}",
-            transaction.account.name[:20]  # Truncate for PDF
-        ])
-    
-    # Create table
-    table = Table(data, colWidths=[1*inch, 1.5*inch, 1.2*inch, 0.8*inch, 1*inch, 1.5*inch])
-    
-    # Style table
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f57c00')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 9),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-    ]))
-    
-    elements.append(table)
-    elements.append(Spacer(1, 0.3*inch))
-    
-    # Add summary
-    total_income = transactions.filter(category__type='income').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    total_expenses = transactions.filter(category__type='expense').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    
-    summary_data = [
-        ['Total Income', f"₵{float(total_income):.2f}"],
-        ['Total Expenses', f"₵{float(total_expenses):.2f}"],
-        ['Net Balance', f"₵{float(total_income - total_expenses):.2f}"],
-    ]
-    
-    summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
-    summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 11),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-    ]))
-    
-    elements.append(Paragraph("Summary", styles['Heading3']))
-    elements.append(summary_table)
-    
-    # Build PDF
-    doc.build(elements)
-    buffer.seek(0)
-    
-    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="transactions_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
-    
-    return response
+    return redirect('export_transactions')
 
 
 @login_required
@@ -804,6 +704,13 @@ def pwa_icon_maskable(request):
 def app_css(request):
     path = settings.BASE_DIR / 'static' / 'css' / 'custom.css'
     response = FileResponse(path.open('rb'), content_type='text/css')
+    response['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+
+def icon_picker_js(request):
+    path = settings.BASE_DIR / 'static' / 'js' / 'icon-picker.js'
+    response = FileResponse(path.open('rb'), content_type='application/javascript')
     response['Cache-Control'] = 'public, max-age=3600'
     return response
 
