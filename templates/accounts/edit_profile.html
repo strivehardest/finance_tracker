@@ -10,16 +10,17 @@
                     {% csrf_token %}
                     <div class="d-flex align-items-center gap-3 mb-4">
                         {% if profile_photo_url %}
-                            <img src="{{ profile_photo_url }}" alt="" class="rounded-circle" style="width:88px;height:88px;object-fit:cover;">
+                            <img src="{{ profile_photo_url }}" alt="" id="photoPreview" class="rounded-circle" style="width:88px;height:88px;object-fit:cover;">
                         {% else %}
-                            <div class="avatar-fallback" style="width:88px;height:88px;border-radius:50%;font-size:1.6rem;">
+                            <img src="" alt="" id="photoPreview" class="rounded-circle d-none" style="width:88px;height:88px;object-fit:cover;">
+                            <div class="avatar-fallback" id="photoFallback" style="width:88px;height:88px;border-radius:50%;font-size:1.6rem;">
                                 {{ user.first_name|default:user.username|make_list|first|upper }}
                             </div>
                         {% endif %}
                         <div class="flex-grow-1">
                             <label class="form-label">Photo</label>
                             {{ form.profile_picture }}
-                            <small class="text-muted">PNG, JPG or WebP. Max 5MB.</small>
+                            <small class="text-muted">PNG, JPG or WebP. Max 5MB. Photos are cropped to a square automatically.</small>
                             {% if form.profile_picture.errors %}<div class="text-danger">{{ form.profile_picture.errors }}</div>{% endif %}
                         </div>
                     </div>
@@ -46,4 +47,21 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const input = document.getElementById('profilePictureInput');
+    const preview = document.getElementById('photoPreview');
+    const fallback = document.getElementById('photoFallback');
+    if (input && preview) {
+        input.addEventListener('change', function () {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('d-none');
+            if (fallback) fallback.classList.add('d-none');
+        });
+    }
+</script>
 {% endblock %}

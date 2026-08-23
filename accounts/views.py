@@ -14,11 +14,13 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from .models import User, Account, Category, Transaction
 from .utils import (
+    CURRENCY_SYMBOLS,
     PERIOD_CHOICES,
     build_excel_report,
     build_pdf_report,
     email_report,
     filter_transactions_period,
+    pagination_pages,
     parse_date,
     profile_photo_url,
 )
@@ -33,15 +35,6 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.units import inch
 from io import BytesIO
-
-# Currency conversion helper
-CURRENCY_SYMBOLS = {
-    'GHS': '₵',
-    'USD': '$',
-    'EUR': '€',
-    'GBP': '£',
-    'NGN': '₦',
-}
 
 EXCHANGE_RATES_CACHE = {}
 CACHE_TIME = None
@@ -318,6 +311,9 @@ def transactions_list(request):
     paginator = Paginator(transactions, 12)
     page = request.GET.get('page')
     page_obj = paginator.get_page(page)
+    user_currency = request.user.preferred_currency
+    for transaction in page_obj:
+        transaction.display_amount = convert_currency(float(transaction.amount), 'GHS', user_currency)
 
     query = request.GET.copy()
     query.pop('page', None)
@@ -332,7 +328,8 @@ def transactions_list(request):
         'date_from': date_from or '',
         'date_to': date_to or '',
         'querystring': query.urlencode(),
-        'currency_symbol': CURRENCY_SYMBOLS.get(request.user.preferred_currency, '₵'),
+        'page_numbers': pagination_pages(page_obj),
+        'currency_symbol': CURRENCY_SYMBOLS.get(user_currency, '₵'),
         'page_title': 'Transactions',
     }
     return render(request, 'accounts/transactions_list.html', context)
@@ -350,12 +347,12 @@ def add_transaction(request):
     else:
         form = TransactionForm(user=request.user)
     
-    return render(request, 'accounts/add_transaction.html', {'form': form})
+    return render(request, 'accounts/add_transaction.html', {'form': form, 'page_title': 'Add transaction'})
 
 @login_required
 def accounts_list(request):
     accounts = Account.objects.filter(user=request.user)
-    return render(request, 'accounts/accounts_list.html', {'accounts': accounts})
+    return render(request, 'accounts/accounts_list.html', {'accounts': accounts, 'page_title': 'Accounts'})
 
 @login_required
 def add_account(request):
@@ -370,7 +367,7 @@ def add_account(request):
     else:
         form = AccountForm()
     
-    return render(request, 'accounts/add_account.html', {'form': form})
+    return render(request, 'accounts/add_account.html', {'form': form, 'page_title': 'Add account'})
 
 @login_required
 def edit_account(request, id):
@@ -384,7 +381,7 @@ def edit_account(request, id):
     else:
         form = AccountForm(instance=account)
     
-    return render(request, 'accounts/edit_account.html', {'form': form, 'account': account})
+    return render(request, 'accounts/edit_account.html', {'form': form, 'account': account, 'page_title': 'Edit account'})
 
 @login_required
 def delete_account(request, id):
@@ -394,12 +391,12 @@ def delete_account(request, id):
         messages.success(request, 'Account deleted successfully!')
         return redirect('accounts_list')
     
-    return render(request, 'accounts/delete_account.html', {'account': account})
+    return render(request, 'accounts/delete_account.html', {'account': account, 'page_title': 'Delete account'})
 
 @login_required
 def categories_list(request):
     categories = Category.objects.filter(user=request.user)
-    return render(request, 'accounts/categories_list.html', {'categories': categories})
+    return render(request, 'accounts/categories_list.html', {'categories': categories, 'page_title': 'Categories'})
 
 @login_required
 def add_category(request):
@@ -414,7 +411,7 @@ def add_category(request):
     else:
         form = CategoryForm()
     
-    return render(request, 'accounts/add_category.html', {'form': form})
+    return render(request, 'accounts/add_category.html', {'form': form, 'page_title': 'Add category'})
 
 @login_required
 def edit_category(request, pk):
@@ -428,7 +425,7 @@ def edit_category(request, pk):
     else:
         form = CategoryForm(instance=category)
     
-    return render(request, 'accounts/edit_category.html', {'form': form, 'category': category})
+    return render(request, 'accounts/edit_category.html', {'form': form, 'category': category, 'page_title': 'Edit category'})
 
 @login_required
 def delete_category(request, pk):
@@ -438,7 +435,7 @@ def delete_category(request, pk):
         messages.success(request, 'Category deleted successfully!')
         return redirect('categories_list')
     
-    return render(request, 'accounts/delete_category.html', {'category': category})
+    return render(request, 'accounts/delete_category.html', {'category': category, 'page_title': 'Delete category'})
 
 def create_default_categories(user):
     default_categories = [
@@ -624,10 +621,11 @@ def budget_view(request):
             'id': category.id,
             'name': category.name,
             'icon': category.icon,
-            'budget_limit': f"{request.user.preferred_currency} {budget_limit:.2f}",
-            'spent_this_month': f"{request.user.preferred_currency} {spent:.2f}",
-            'remaining_budget': f"{request.user.preferred_currency} {remaining:.2f}",
-            'budget_percent': budget_percent,
+            'color': category.color,
+            'budget_limit': budget_limit,
+            'spent_this_month': spent,
+            'remaining_budget': remaining,
+            'budget_percent': min(budget_percent, 999),
         })
     
     # Calculate overall budget usage
@@ -637,9 +635,11 @@ def budget_view(request):
     
     context = {
         'categories': budget_data,
-        'total_budget': f"{request.user.preferred_currency} {total_budget:.2f}",
-        'total_spent': f"{request.user.preferred_currency} {total_spent:.2f}",
+        'total_budget': total_budget,
+        'total_spent': total_spent,
         'budget_percent': total_budget_percent,
+        'page_title': 'Budget',
+        'currency_symbol': CURRENCY_SYMBOLS.get(request.user.preferred_currency, '₵'),
     }
     
     return render(request, 'accounts/budget.html', context)
@@ -657,7 +657,7 @@ def edit_transaction(request, id):
     else:
         form = TransactionForm(instance=transaction, user=request.user)
     
-    return render(request, 'accounts/edit_transaction.html', {'form': form, 'transaction': transaction})
+    return render(request, 'accounts/edit_transaction.html', {'form': form, 'transaction': transaction, 'page_title': 'Edit transaction'})
 
 
 @login_required
@@ -668,7 +668,7 @@ def delete_transaction(request, id):
         messages.success(request, 'Transaction deleted successfully!')
         return redirect('transactions_list')
     
-    return render(request, 'accounts/delete_transaction.html', {'transaction': transaction})
+    return render(request, 'accounts/delete_transaction.html', {'transaction': transaction, 'page_title': 'Delete transaction'})
 
 
 ICON_DIR = settings.BASE_DIR / 'static' / 'images'
@@ -704,14 +704,14 @@ def pwa_icon_maskable(request):
 def app_css(request):
     path = settings.BASE_DIR / 'static' / 'css' / 'custom.css'
     response = FileResponse(path.open('rb'), content_type='text/css')
-    response['Cache-Control'] = 'public, max-age=3600'
+    response['Cache-Control'] = 'public, max-age=60'
     return response
 
 
 def icon_picker_js(request):
     path = settings.BASE_DIR / 'static' / 'js' / 'icon-picker.js'
     response = FileResponse(path.open('rb'), content_type='application/javascript')
-    response['Cache-Control'] = 'public, max-age=3600'
+    response['Cache-Control'] = 'public, max-age=60'
     return response
 
 

@@ -1,14 +1,12 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center">
+<div class="row g-4">
     <div class="col-lg-7">
-        <div class="card">
+        <div class="card h-100">
             <div class="card-header">Export transactions</div>
             <div class="card-body">
-                <p class="text-muted">{{ period_label }} · {{ count }} record{{ count|pluralize }}</p>
-                <form method="post">
-                    {% csrf_token %}
+                <form method="get" id="periodForm" class="mb-4">
                     <div class="mb-3">
                         <label class="form-label">Period</label>
                         <select name="period" id="period" class="form-select">
@@ -27,11 +25,25 @@
                             <input type="date" name="end" class="form-control" value="{{ end }}">
                         </div>
                     </div>
+                    <button type="submit" class="btn btn-outline-secondary btn-sm" id="previewBtn">Update preview</button>
+                </form>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="period" value="{{ period }}">
+                    <input type="hidden" name="start" value="{{ start }}">
+                    <input type="hidden" name="end" value="{{ end }}">
                     <div class="mb-3">
                         <label class="form-label">Format</label>
-                        <div class="d-flex gap-3">
-                            <label class="form-check"><input class="form-check-input" type="radio" name="format" value="pdf" checked> PDF</label>
-                            <label class="form-check"><input class="form-check-input" type="radio" name="format" value="excel"> Excel</label>
+                        <div class="export-formats">
+                            <label class="export-choice">
+                                <input type="radio" name="format" value="pdf" checked>
+                                <span><i class="fas fa-file-pdf"></i> PDF report</span>
+                            </label>
+                            <label class="export-choice">
+                                <input type="radio" name="format" value="excel">
+                                <span><i class="fas fa-file-excel"></i> Excel workbook</span>
+                            </label>
                         </div>
                     </div>
                     <div class="mb-4">
@@ -39,10 +51,23 @@
                         <input type="email" name="email" class="form-control" value="{{ default_email }}" placeholder="you@example.com">
                     </div>
                     <div class="d-flex flex-wrap gap-2">
-                        <button type="submit" name="action" value="download" class="btn btn-primary">Download</button>
-                        <button type="submit" name="action" value="email" class="btn btn-outline-primary">Send by email</button>
+                        <button type="submit" name="action" value="download" class="btn btn-primary"><i class="fas fa-download me-1"></i> Download</button>
+                        <button type="submit" name="action" value="email" class="btn btn-outline-primary"><i class="fas fa-envelope me-1"></i> Send by email</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header">Preview</div>
+            <div class="card-body">
+                <div class="kpi mb-3" style="--kpi:#f57c00">
+                    <div class="label">Selected period</div>
+                    <div class="value" style="font-size:1.15rem">{{ period_label }}</div>
+                </div>
+                <p class="mb-2"><strong>{{ count }}</strong> transaction{{ count|pluralize }} will be included.</p>
+                <p class="text-muted mb-0">PDF and Excel files include a branded header, income/expense totals, and the date range you selected. Email sends the same file as an attachment.</p>
             </div>
         </div>
     </div>
@@ -53,10 +78,16 @@
 <script>
     const period = document.getElementById('period');
     const custom = document.getElementById('customDates');
+    const previewBtn = document.getElementById('previewBtn');
     function toggleDates() {
-        custom.style.display = period.value === 'custom' ? 'flex' : 'none';
+        const isCustom = period.value === 'custom';
+        custom.style.display = isCustom ? 'flex' : 'none';
+        if (previewBtn) previewBtn.style.display = isCustom ? 'inline-block' : 'none';
     }
-    period.addEventListener('change', toggleDates);
+    period.addEventListener('change', function () {
+        toggleDates();
+        if (period.value !== 'custom') period.form.submit();
+    });
     toggleDates();
 </script>
 {% endblock %}

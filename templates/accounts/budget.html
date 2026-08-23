@@ -1,192 +1,59 @@
 {% extends 'base.html' %}
-
-{% block title %}Budget - Finance Tracker{% endblock %}
+{% load ui_tags %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-12">
-        <h1 class="mb-4">
-            <i class="fas fa-piggy-bank text-primary me-2"></i>Budget Management
-        </h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="text-muted small">Planning</div>
+        <h2 class="h4 mb-0">Budget</h2>
     </div>
+    <a href="{% url 'categories_list' %}" class="btn btn-outline-primary">Edit categories</a>
 </div>
 
-<!-- Budget Overview Cards -->
-<div class="row mb-4">
+<div class="row g-3 mb-4">
     <div class="col-md-6">
-        <div class="card stats-card">
-            <div class="card-body">
-                <h5 class="card-title">Total Budget Limit</h5>
-                <h2 class="text-primary">
-                    <span id="total-budget">GHS 0.00</span>
-                </h2>
-                <small class="text-muted">Set your monthly spending limit</small>
-            </div>
+        <div class="kpi" style="--kpi:#6d28d9">
+            <div class="label">Total budget this month</div>
+            <div class="value">{{ currency_symbol }}{{ total_budget|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-6">
-        <div class="card stats-card">
-            <div class="card-body">
-                <h5 class="card-title">Budget Usage</h5>
-                <div class="progress mt-2" style="height: 25px;">
-                    <div id="budget-progress" class="progress-bar bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                        <span id="budget-percent">0%</span>
+        <div class="kpi" style="--kpi:#f57c00">
+            <div class="label">Spent</div>
+            <div class="value">{{ currency_symbol }}{{ total_spent|floatformat:2 }} · {{ budget_percent }}%</div>
+            <div class="progress mt-3" style="height:8px">
+                <div class="progress-bar {% if budget_percent >= 100 %}bg-danger{% elif budget_percent >= 75 %}bg-warning{% else %}bg-success{% endif %}" style="width:{% if budget_percent > 100 %}100{% else %}{{ budget_percent }}{% endif %}%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">By category</div>
+    <div class="card-body">
+        {% if categories %}
+            {% for category in categories %}
+                <div class="tx-row">
+                    {% cat_icon_code category.icon category.color %}
+                    <div class="tx-main">
+                        <div class="fw-semibold">{{ category.name }}</div>
+                        <div class="tx-meta">Spent {{ currency_symbol }}{{ category.spent_this_month|floatformat:2 }} of {{ currency_symbol }}{{ category.budget_limit|floatformat:2 }}</div>
+                        <div class="progress mt-2" style="height:8px;max-width:280px">
+                            <div class="progress-bar {% if category.budget_percent >= 100 %}bg-danger{% elif category.budget_percent >= 75 %}bg-warning{% else %}bg-success{% endif %}" style="width:{% if category.budget_percent > 100 %}100{% else %}{{ category.budget_percent }}{% endif %}%"></div>
+                        </div>
+                    </div>
+                    <div class="tx-aside">
+                        <div class="tx-amount {% if category.remaining_budget < 0 %}expense{% else %}income{% endif %}">
+                            {{ currency_symbol }}{{ category.remaining_budget|floatformat:2 }}
+                        </div>
+                        <small class="text-muted">{{ category.budget_percent }}% used</small>
+                        <a href="{% url 'edit_category' category.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
                     </div>
                 </div>
-                <small class="text-muted mt-2">Remaining budget shown above</small>
-            </div>
-        </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted mb-0">No category budgets yet. <a href="{% url 'categories_list' %}">Set a budget on a category</a>.</p>
+        {% endif %}
     </div>
 </div>
-
-<!-- Category Budgets -->
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-list me-2"></i>Budget by Category
-                </h5>
-                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addBudgetModal">
-                    <i class="fas fa-plus me-1"></i>Set Budget
-                </button>
-            </div>
-            <div class="card-body">
-                {% if categories %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Category</th>
-                                    <th>Budget Limit</th>
-                                    <th>Spent This Month</th>
-                                    <th>Remaining</th>
-                                    <th>Progress</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for category in categories %}
-                                <tr>
-                                    <td>
-                                        <i class="me-2" style="font-size: 1.5em;">{{ category.icon }}</i>
-                                        <strong>{{ category.name }}</strong>
-                                    </td>
-                                    <td>{{ category.budget_limit|default:"Not Set" }}</td>
-                                    <td class="text-danger">
-                                        <strong>{{ category.spent_this_month|default:"GHS 0.00" }}</strong>
-                                    </td>
-                                    <td class="text-success">
-                                        <strong>{{ category.remaining_budget|default:"GHS 0.00" }}</strong>
-                                    </td>
-                                    <td style="width: 150px;">
-                                        <div class="progress" style="height: 20px;">
-                                            {% with budget_percent=category.budget_percent|default:0 %}
-                                                {% if budget_percent >= 100 %}
-                                                    <div class="progress-bar bg-danger" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
-                                                        <small>{{ budget_percent }}%</small>
-                                                    </div>
-                                                {% elif budget_percent >= 75 %}
-                                                    <div class="progress-bar bg-warning" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
-                                                        <small>{{ budget_percent }}%</small>
-                                                    </div>
-                                                {% else %}
-                                                    <div class="progress-bar bg-success" role="progressbar" style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">
-                                                        <small>{{ budget_percent }}%</small>
-                                                    </div>
-                                                {% endif %}
-                                            {% endwith %}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <a href="{% url 'edit_category' category.id %}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="alert alert-info" role="alert">
-                        <i class="fas fa-info-circle me-2"></i>
-                        No budget set yet. Create categories and set budgets to get started!
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Budget Modal -->
-<div class="modal fade" id="addBudgetModal" tabindex="-1" aria-labelledby="addBudgetLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="addBudgetLabel">
-                    <i class="fas fa-plus me-2"></i>Set Budget for Category
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="post" action="{% url 'edit_category' 0 %}">
-                <div class="modal-body">
-                    {% csrf_token %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Go to the Categories page to set budget limits for each category.
-                    </div>
-                    <p class="text-muted">
-                        <a href="{% url 'categories_list' %}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-edit me-1"></i>Edit Categories
-                        </a>
-                    </p>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Budget Modal -->
-<div class="modal fade" id="editBudgetModal" tabindex="-1" aria-labelledby="editBudgetLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="editBudgetLabel">
-                    <i class="fas fa-edit me-2"></i>Edit Budget
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Click the Edit button next to a category to update its budget.
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Budget Modal -->
-<div class="modal fade" id="deleteBudgetModal" tabindex="-1" aria-labelledby="deleteBudgetLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteBudgetLabel">
-                    <i class="fas fa-trash me-2"></i>Delete Budget
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete the budget for this category?</p>
-                <p class="text-muted"><strong>Note:</strong> This will only remove the budget limit, not the category itself.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
-{% block scripts %}
-<!-- Budget page doesn't need additional scripts -->
 {% endblock %}

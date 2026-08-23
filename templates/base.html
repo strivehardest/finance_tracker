@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#261b45">
+    <meta name="theme-color" content="#261b45" id="themeColor">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Finance Tracker">
@@ -32,7 +32,8 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 {% if user.is_authenticated %}
-<div class="app-frame authenticated">
+<div class="app-frame authenticated" id="appFrame">
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <aside class="app-sidebar">
         <a class="sidebar-brand" href="{% url 'dashboard' %}">
             <img src="{% url 'pwa_icon_192' %}" alt="" class="brand-mark">
@@ -47,6 +48,7 @@
             <a class="nav-link {% if request.resolver_match.url_name == 'budget' %}active{% endif %}" href="{% url 'budget' %}"><i class="fas fa-bullseye"></i> Budget</a>
             <a class="nav-link {% if request.resolver_match.url_name == 'export_transactions' %}active{% endif %}" href="{% url 'export_transactions' %}"><i class="fas fa-file-export"></i> Export</a>
             <a class="nav-link {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'edit_profile' %}active{% endif %}" href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a>
+            <a class="nav-link" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Log out</a>
         </nav>
         <div class="sidebar-foot">
             <form method="post" action="{% url 'set_currency' %}">
@@ -62,6 +64,7 @@
     </aside>
     <div class="app-main-col">
         <header class="app-topbar">
+            <button type="button" class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Open menu"><i class="fas fa-bars"></i></button>
             <h1>{{ page_title|default:"Dashboard" }}</h1>
             <form class="top-search" action="{% url 'transactions_list' %}" method="get">
                 <i class="fas fa-search"></i>
@@ -127,6 +130,9 @@
             document.querySelectorAll('#themeIcon').forEach(function (icon) {
                 icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
             });
+            var themeColor = document.getElementById('themeColor');
+            if (themeColor) themeColor.setAttribute('content', theme === 'dark' ? '#121015' : '#261b45');
+            window.dispatchEvent(new CustomEvent('ft-theme', { detail: theme }));
         }
         applyTheme(localStorage.getItem('ft-theme') || 'light');
         document.querySelectorAll('#themeToggle').forEach(function (btn) {
@@ -134,6 +140,17 @@
                 var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
                 applyTheme(next);
             });
+        });
+        var frame = document.getElementById('appFrame');
+        var toggle = document.getElementById('sidebarToggle');
+        var backdrop = document.getElementById('sidebarBackdrop');
+        function closeSidebar() { if (frame) frame.classList.remove('sidebar-open'); }
+        if (toggle && frame) {
+            toggle.addEventListener('click', function () { frame.classList.toggle('sidebar-open'); });
+        }
+        if (backdrop) backdrop.addEventListener('click', closeSidebar);
+        document.querySelectorAll('.app-sidebar .nav-link, .app-sidebar .btn-new').forEach(function (link) {
+            link.addEventListener('click', closeSidebar);
         });
     })();
 

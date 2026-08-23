@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import User, Transaction, Account, Category
-from PIL import Image
+from .utils import is_uploaded_file, normalize_icon, process_profile_image
 from django.core.exceptions import ValidationError
 from datetime import datetime
 
@@ -105,10 +105,7 @@ class CategoryForm(forms.ModelForm):
                 'placeholder': 'Enter category name'
             }),
             'type': forms.Select(attrs={'class': 'form-select'}),
-            'icon': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': '💰'
-            }),
+            'icon': forms.HiddenInput(),
             'color': forms.TextInput(attrs={
                 'type': 'color', 
                 'class': 'form-control form-control-color'
@@ -120,6 +117,14 @@ class CategoryForm(forms.ModelForm):
                 'min': '0'
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        current = self.initial.get('icon') or getattr(self.instance, 'icon', '')
+        self.initial['icon'] = normalize_icon(current) if current else 'fa-tag'
+
+    def clean_icon(self):
+        return normalize_icon(self.cleaned_data.get('icon'))
 
 class ProfileForm(forms.ModelForm):
     """Form for editing user profile information"""
@@ -193,9 +198,9 @@ class ProfileForm(forms.ModelForm):
     def clean_profile_picture(self):
         picture = self.cleaned_data.get('profile_picture')
         if picture is False:
-            return None
-        if not picture:
-            return self.instance.profile_picture
+            return False
+        if not is_uploaded_file(picture):
+            return picture
 
         if getattr(picture, 'size', 0) > 5 * 1024 * 1024:
             raise ValidationError('Profile picture must be less than 5MB.')
@@ -209,13 +214,9 @@ class ProfileForm(forms.ModelForm):
             raise ValidationError('Please upload a PNG, JPG, or WebP image.')
 
         try:
-            img = Image.open(picture)
-            img.verify()
-            picture.seek(0)
+            return process_profile_image(picture)
         except Exception:
             raise ValidationError('Invalid image file. Please upload a valid PNG or JPG.')
-
-        return picture
 
     def clean_phone_number(self):
         """Validate phone number"""

@@ -111,10 +111,13 @@
 
 {% block scripts %}
 <script>
+    const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark';
+    const tickColor = () => isDark() ? '#a8a29e' : '#78716c';
+    const gridColor = () => isDark() ? '#3f3a36' : '#ece7e1';
     const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
     const monthlyData = JSON.parse('{{ monthly_data|escapejs }}');
     const months = Object.keys(monthlyData);
-    new Chart(monthlyCtx, {
+    const monthlyChart = new Chart(monthlyCtx, {
         type: 'bar',
         data: {
             labels: months,
@@ -123,24 +126,43 @@
                 { label: 'Expenses', data: months.map(m => monthlyData[m].expense), backgroundColor: '#f57c00', borderRadius: 6 }
             ]
         },
-        options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top', labels: { color: tickColor() } } },
+            scales: {
+                y: { beginAtZero: true, ticks: { color: tickColor() }, grid: { color: gridColor() } },
+                x: { ticks: { color: tickColor() }, grid: { display: false } }
+            }
+        }
     });
 
     const categoryCanvas = document.getElementById('categoryChart');
     const categoryData = JSON.parse('{{ category_data|escapejs }}');
     const categoryLabels = categoryData.map(item => item.category__name);
     const categoryAmounts = categoryData.map(item => item.total);
+    let categoryChart = null;
     if (!categoryLabels.length) {
         categoryCanvas.replaceWith(Object.assign(document.createElement('p'), { className: 'text-muted mb-0', textContent: 'No transactions this month.' }));
     } else {
-        new Chart(categoryCanvas.getContext('2d'), {
+        categoryChart = new Chart(categoryCanvas.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: categoryLabels,
                 datasets: [{ data: categoryAmounts, backgroundColor: ['#f57c00','#6d28d9','#2563eb','#15803d','#ea580c','#0f766e','#b91c1c','#ca8a04'], borderWidth: 0 }]
             },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: tickColor() } } } }
         });
     }
+    window.addEventListener('ft-theme', function () {
+        monthlyChart.options.plugins.legend.labels.color = tickColor();
+        monthlyChart.options.scales.y.ticks.color = tickColor();
+        monthlyChart.options.scales.y.grid.color = gridColor();
+        monthlyChart.options.scales.x.ticks.color = tickColor();
+        monthlyChart.update();
+        if (categoryChart) {
+            categoryChart.options.plugins.legend.labels.color = tickColor();
+            categoryChart.update();
+        }
+    });
 </script>
 {% endblock %}

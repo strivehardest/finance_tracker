@@ -3,6 +3,7 @@ from decimal import Decimal
 from io import BytesIO
 
 from django.conf import settings
+from django.core.files.uploadedfile import InMemoryUploadedFile, UploadedFile
 from django.core.mail import EmailMessage
 from django.db.models import Sum
 from django.utils.html import escape
@@ -10,11 +11,113 @@ from django.utils.safestring import mark_safe
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from PIL import Image, ImageOps
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+CURRENCY_SYMBOLS = {
+    'GHS': '₵',
+    'USD': '$',
+    'EUR': '€',
+    'GBP': '£',
+    'NGN': '₦',
+}
+
+EMOJI_TO_FA = {
+    '💰': 'fa-money-bill-wave',
+    '💵': 'fa-money-bill-wave',
+    '💸': 'fa-money-bill-wave',
+    '💻': 'fa-laptop',
+    '🖥️': 'fa-laptop',
+    '🏢': 'fa-building',
+    '📈': 'fa-chart-line',
+    '🎁': 'fa-gift',
+    '🍔': 'fa-utensils',
+    '🍕': 'fa-utensils',
+    '🍽️': 'fa-utensils',
+    '☕': 'fa-coffee',
+    '🚗': 'fa-car',
+    '🚌': 'fa-bus',
+    '⛽': 'fa-gas-pump',
+    '✈️': 'fa-plane',
+    '🏠': 'fa-home',
+    '💡': 'fa-bolt',
+    '🔌': 'fa-bolt',
+    '📶': 'fa-wifi',
+    '📱': 'fa-mobile-alt',
+    '🎬': 'fa-film',
+    '🎮': 'fa-gamepad',
+    '🎵': 'fa-music',
+    '❤️': 'fa-heartbeat',
+    '🏥': 'fa-heartbeat',
+    '💊': 'fa-pills',
+    '🛍️': 'fa-shopping-bag',
+    '👕': 'fa-tshirt',
+    '🎓': 'fa-graduation-cap',
+    '🐾': 'fa-paw',
+    '📦': 'fa-box',
+    '💳': 'fa-credit-card',
+}
+
+
+def normalize_icon(icon):
+    icon = (icon or '').strip()
+    if icon.startswith('fa-'):
+        return icon
+    return EMOJI_TO_FA.get(icon, 'fa-tag')
+
+
+def pagination_pages(page_obj, adjacent=1):
+    if not page_obj or not page_obj.paginator.num_pages:
+        return []
+    current = page_obj.number
+    last = page_obj.paginator.num_pages
+    nums = {1, last}
+    for number in range(current - adjacent, current + adjacent + 1):
+        if 1 <= number <= last:
+            nums.add(number)
+    result = []
+    previous = 0
+    for number in sorted(nums):
+        if previous and number > previous + 1:
+            result.append(None)
+        result.append(number)
+        previous = number
+    return result
+
+
+def process_profile_image(picture):
+    picture.seek(0)
+    image = Image.open(picture)
+    image = ImageOps.exif_transpose(image)
+    if image.mode in ('RGBA', 'LA', 'P'):
+        rgba = image.convert('RGBA')
+        background = Image.new('RGB', rgba.size, (255, 255, 255))
+        background.paste(rgba, mask=rgba.split()[-1])
+        image = background
+    else:
+        image = image.convert('RGB')
+    image = ImageOps.fit(image, (512, 512), Image.Resampling.LANCZOS)
+    buffer = BytesIO()
+    image.save(buffer, format='JPEG', quality=86, optimize=True)
+    buffer.seek(0)
+    original = getattr(picture, 'name', 'profile.jpg') or 'profile.jpg'
+    stem = original.rsplit('/', 1)[-1].rsplit('.', 1)[0] or 'profile'
+    return InMemoryUploadedFile(
+        buffer,
+        'ImageField',
+        f'{stem}.jpg',
+        'image/jpeg',
+        buffer.getbuffer().nbytes,
+        None,
+    )
+
+
+def is_uploaded_file(value):
+    return isinstance(value, UploadedFile)
 
 
 PERIOD_CHOICES = (
@@ -43,14 +146,10 @@ def profile_photo_url(user):
 
 
 def category_icon_html(icon, color='#f57c00'):
-    icon = (icon or 'fa-tag').strip()
+    icon = normalize_icon(icon)
     color = escape(color or '#f57c00')
-    if icon.startswith('fa-'):
-        return mark_safe(
-            f'<span class="cat-icon" style="--cat:{color}"><i class="fas {escape(icon)}"></i></span>'
-        )
     return mark_safe(
-        f'<span class="cat-icon cat-emoji" style="--cat:{color}">{escape(icon)}</span>'
+        f'<span class="cat-icon" style="--cat:{color}"><i class="fas {escape(icon)}"></i></span>'
     )
 
 
@@ -103,8 +202,13 @@ def _summaries(transactions):
     return income, expenses, income - expenses
 
 
+def _currency_code(user):
+    return getattr(user, 'preferred_currency', None) or 'GHS'
+
+
 def build_excel_report(user, transactions, period_label):
     income, expenses, net = _summaries(transactions)
+    currency = _currency_code(user)
     wb = Workbook()
     ws = wb.active
     ws.title = 'Transactions'
@@ -132,10 +236,13 @@ def build_excel_report(user, transactions, period_label):
     ws.row_dimensions[1].height = 28
 
     ws.merge_cells('A2:G2')
-    ws['A2'].value = f'Transaction report · {period_label} · {user.get_full_name() or user.username}'
+    ws['A2'].value = (
+        f'Transaction report · {period_label} · {currency} · '
+        f'{user.get_full_name() or user.username}'
+    )
     ws['A2'].font = Font(color='78716C', italic=True)
 
-    headers = ['Date', 'Description', 'Category', 'Type', 'Amount', 'Account', 'Notes']
+    headers = ['Date', 'Description', 'Category', 'Type', f'Amount ({currency})', 'Account', 'Notes']
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=4, column=col, value=header)
         cell.fill = orange
@@ -172,9 +279,9 @@ def build_excel_report(user, transactions, period_label):
     summary_row = last_data + 2
     ws.cell(row=summary_row, column=1, value='Summary').font = Font(bold=True, size=12)
     rows = (
-        ('Total income', float(income), green),
-        ('Total expenses', float(expenses), red),
-        ('Net', float(net), Font(bold=True)),
+        (f'Total income ({currency})', float(income), green),
+        (f'Total expenses ({currency})', float(expenses), red),
+        (f'Net ({currency})', float(net), Font(bold=True)),
     )
     for offset, (label, value, font) in enumerate(rows, 1):
         ws.cell(row=summary_row + offset, column=1, value=label)
@@ -189,6 +296,7 @@ def build_excel_report(user, transactions, period_label):
 
 def build_pdf_report(user, transactions, period_label):
     income, expenses, net = _summaries(transactions)
+    currency = _currency_code(user)
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -213,12 +321,12 @@ def build_pdf_report(user, transactions, period_label):
     story = [
         Paragraph('Finance Tracker', title_style),
         Paragraph(
-            f'{period_label} · {user.get_full_name() or user.username} · generated {datetime.now():%d %b %Y %H:%M}',
+            f'{period_label} · {currency} · {user.get_full_name() or user.username} · generated {datetime.now():%d %b %Y %H:%M}',
             meta_style,
         ),
     ]
 
-    header = ['Date', 'Description', 'Category', 'Type', 'Amount', 'Account']
+    header = ['Date', 'Description', 'Category', 'Type', f'Amount ({currency})', 'Account']
     data = [header]
     for transaction in transactions:
         amount = f"{'+' if transaction.category.type == 'income' else '-'}{float(transaction.amount):,.2f}"
@@ -251,9 +359,9 @@ def build_pdf_report(user, transactions, period_label):
 
     summary = Table(
         [
-            ['Total income', f'{float(income):,.2f}'],
-            ['Total expenses', f'{float(expenses):,.2f}'],
-            ['Net', f'{float(net):,.2f}'],
+            [f'Total income ({currency})', f'{float(income):,.2f}'],
+            [f'Total expenses ({currency})', f'{float(expenses):,.2f}'],
+            [f'Net ({currency})', f'{float(net):,.2f}'],
         ],
         colWidths=[2.2 * inch, 1.4 * inch],
     )

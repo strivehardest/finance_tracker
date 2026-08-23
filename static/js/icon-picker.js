@@ -1,11 +1,14 @@
 const CATEGORY_ICONS = [
     { code: 'fa-money-bill-wave', name: 'Salary' },
+    { code: 'fa-wallet', name: 'Wallet' },
     { code: 'fa-laptop', name: 'Freelance' },
     { code: 'fa-building', name: 'Business' },
     { code: 'fa-chart-line', name: 'Investment' },
     { code: 'fa-gift', name: 'Gift' },
+    { code: 'fa-undo', name: 'Refund' },
     { code: 'fa-utensils', name: 'Food' },
     { code: 'fa-coffee', name: 'Coffee' },
+    { code: 'fa-shopping-basket', name: 'Groceries' },
     { code: 'fa-car', name: 'Car' },
     { code: 'fa-bus', name: 'Bus' },
     { code: 'fa-gas-pump', name: 'Fuel' },
@@ -24,6 +27,7 @@ const CATEGORY_ICONS = [
     { code: 'fa-graduation-cap', name: 'Education' },
     { code: 'fa-paw', name: 'Pets' },
     { code: 'fa-heart', name: 'Family' },
+    { code: 'fa-credit-card', name: 'Cards' },
     { code: 'fa-ellipsis-h', name: 'Other' }
 ];
 

@@ -187,6 +187,8 @@ MESSAGE_TAGS = {
 }
 
 # Email Configuration
+DEFAULT_FROM_EMAIL = 'Finance Tracker <trackerfinanace@gmail.com>'
+SERVER_EMAIL = 'trackerfinanace@gmail.com'
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
@@ -196,10 +198,8 @@ else:
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='trackerfinanace@gmail.com')
     EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-    DEFAULT_FROM_EMAIL = 'Finance Tracker <trackerfinanace@gmail.com>'
-    SERVER_EMAIL = 'trackerfinanace@gmail.com'
-    EMAIL_TIMEOUT = 30  # Timeout after 30 seconds
-    EMAIL_USE_LOCALTIME = False  # Reduce overhead
+    EMAIL_TIMEOUT = 30
+    EMAIL_USE_LOCALTIME = False
 
 # Allauth Email Settings
 ACCOUNT_EMAIL_REQUIRED = True
@@ -225,14 +225,13 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# Profile photos can be up to 5MB before we resize them.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
+
 # Optimize for low memory (Render free tier)
 if not DEBUG:
-    # Reduce database connection pool
-    DATABASES['default']['CONN_MAX_AGE'] = 0  # Don't pool connections
-    
-    # Limit request body size
-    DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
-    FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440  # 2.5MB
+    DATABASES['default']['CONN_MAX_AGE'] = 0
 
 
 

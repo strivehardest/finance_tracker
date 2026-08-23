@@ -46,8 +46,9 @@
                 <label class="form-label">Search</label>
                 <input type="text" name="search" class="form-control" value="{{ search_term }}" placeholder="Description">
             </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-outline-primary flex-grow-1">Filter</button>
+                <a href="{% url 'transactions_list' %}" class="btn btn-outline-secondary">Reset</a>
             </div>
         </form>
     </div>
@@ -56,42 +57,56 @@
 <div class="card">
     <div class="card-body">
         {% if transactions %}
-            {% for transaction in transactions %}
-                <div class="tx-row">
-                    {% cat_icon transaction.category %}
-                    <div>
-                        <div class="fw-semibold">{{ transaction.description }}</div>
-                        <div class="tx-meta">{{ transaction.category.name }} · {{ transaction.account.name }} · {{ transaction.date|date:"M d, Y" }}</div>
+            <div class="tx-list">
+                {% for transaction in transactions %}
+                    <div class="tx-row">
+                        {% cat_icon transaction.category %}
+                        <div class="tx-main">
+                            <div class="fw-semibold">{{ transaction.description }}</div>
+                            <div class="tx-meta">{{ transaction.category.name }} · {{ transaction.account.name }} · {{ transaction.date|date:"M d, Y" }}</div>
+                        </div>
+                        <div class="tx-aside">
+                            <div class="tx-amount {% if transaction.category.type == 'income' %}income{% else %}expense{% endif %}">
+                                {% if transaction.category.type == 'income' %}+{% else %}−{% endif %}{{ currency_symbol }}{{ transaction.display_amount|floatformat:2 }}
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'edit_transaction' transaction.id %}" class="btn btn-outline-secondary" title="Edit"><i class="fas fa-pen"></i></a>
+                                <a href="{% url 'delete_transaction' transaction.id %}" class="btn btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="tx-amount {% if transaction.category.type == 'income' %}income{% else %}expense{% endif %}">
-                        {% if transaction.category.type == 'income' %}+{% else %}-{% endif %}{{ currency_symbol }}{{ transaction.amount|floatformat:2 }}
-                    </div>
-                    <div class="btn-group btn-group-sm">
-                        <a href="{% url 'edit_transaction' transaction.id %}" class="btn btn-outline-secondary" title="Edit"><i class="fas fa-pen"></i></a>
-                        <a href="{% url 'delete_transaction' transaction.id %}" class="btn btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></a>
-                    </div>
-                </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
 
             {% if transactions.has_other_pages %}
-                <nav class="mt-4">
-                    <ul class="pagination justify-content-center mb-0">
-                        {% if transactions.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ transactions.previous_page_number }}">Previous</a>
-                            </li>
-                        {% endif %}
-                        {% for page_num in transactions.paginator.page_range %}
-                            <li class="page-item {% if page_num == transactions.number %}active{% endif %}">
-                                <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_num }}">{{ page_num }}</a>
-                            </li>
+                <nav class="tx-pager" aria-label="Transaction pages">
+                    {% if transactions.has_previous %}
+                        <a class="btn btn-outline-secondary" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ transactions.previous_page_number }}">Previous</a>
+                    {% else %}
+                        <span class="btn btn-outline-secondary disabled">Previous</span>
+                    {% endif %}
+
+                    <div class="tx-pager-pages">
+                        {% for page_num in page_numbers %}
+                            {% if page_num is None %}
+                                <span class="tx-ellipsis">…</span>
+                            {% elif page_num == transactions.number %}
+                                <span class="page-current">{{ page_num }}</span>
+                            {% else %}
+                                <a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_num }}">{{ page_num }}</a>
+                            {% endif %}
                         {% endfor %}
-                        {% if transactions.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ transactions.next_page_number }}">Next</a>
-                            </li>
-                        {% endif %}
-                    </ul>
+                    </div>
+
+                    <div class="tx-pager-status">
+                        {{ transactions.start_index }}–{{ transactions.end_index }} of {{ transactions.paginator.count }}
+                    </div>
+
+                    {% if transactions.has_next %}
+                        <a class="btn btn-primary" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ transactions.next_page_number }}">Next</a>
+                    {% else %}
+                        <span class="btn btn-primary disabled">Next</span>
+                    {% endif %}
                 </nav>
             {% endif %}
         {% else %}
