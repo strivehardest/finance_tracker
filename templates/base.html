@@ -13,9 +13,47 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% url 'app_css' %}">
+    <link rel="stylesheet" href="{% url 'app_css' %}?v={{ asset_v|default:'5' }}">
     <link rel="icon" href="{% url 'favicon' %}">
     <link rel="apple-touch-icon" href="{% url 'apple_touch_icon' %}">
+    <style>
+        .app-frame.authenticated {
+            display: flex !important;
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
+        }
+        .app-sidebar {
+            flex: 0 0 250px;
+            width: 250px;
+            max-width: 250px;
+            background: linear-gradient(180deg, #261b45, #1b1333) !important;
+            color: #fff !important;
+            min-height: 100vh;
+            padding: 1.25rem 1rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+        .sidebar-brand { color: #fff !important; text-decoration: none; font-weight: 700; display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1.1rem; }
+        .btn-new { display: block; text-align: center; background: #fff !important; color: #261b45 !important; font-weight: 700; border-radius: 999px; padding: 0.7rem 1rem; margin-bottom: 1.2rem; text-decoration: none !important; }
+        .sidebar-nav { display: flex; flex-direction: column; gap: 0.15rem; }
+        .sidebar-link { color: rgba(255,255,255,0.78) !important; text-decoration: none !important; border-radius: 0.75rem; padding: 0.62rem 0.8rem; display: flex; align-items: center; gap: 0.7rem; }
+        .sidebar-link i { width: 1.1rem; text-align: center; }
+        .sidebar-link:hover, .sidebar-link.is-active { background: #f57c00; color: #fff !important; }
+        .sidebar-foot { margin-top: auto; padding-top: 1rem; }
+        .app-main-col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+        .app-topbar { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1.25rem; background: #fff; border-bottom: 1px solid #ece7e1; flex-wrap: wrap; }
+        html[data-theme="dark"] .app-topbar { background: #1a1623; border-bottom-color: #3f3a36; }
+        .sidebar-toggle { display: none; }
+        .sidebar-backdrop { display: none; }
+        @media (max-width: 992px) {
+            .app-sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 40; transform: translateX(-100%); transition: transform 0.2s ease; }
+            .app-frame.sidebar-open .app-sidebar { transform: none; }
+            .sidebar-toggle { display: inline-flex !important; }
+            .app-frame.sidebar-open .sidebar-backdrop { display: block; position: fixed; inset: 0; background: rgba(18,16,21,0.55); z-index: 30; }
+        }
+    </style>
     <script>
         (function () {
             var theme = localStorage.getItem('ft-theme') || 'light';
@@ -40,15 +78,15 @@
             Finance Tracker
         </a>
         <a class="btn-new" href="{% url 'add_transaction' %}">+ Add transaction</a>
-        <nav class="nav flex-column">
-            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}"><i class="fas fa-th-large"></i> Dashboard</a>
-            <a class="nav-link {% if request.resolver_match.url_name == 'transactions_list' %}active{% endif %}" href="{% url 'transactions_list' %}"><i class="fas fa-list"></i> Transactions</a>
-            <a class="nav-link {% if request.resolver_match.url_name == 'accounts_list' %}active{% endif %}" href="{% url 'accounts_list' %}"><i class="fas fa-university"></i> Accounts</a>
-            <a class="nav-link {% if request.resolver_match.url_name == 'categories_list' %}active{% endif %}" href="{% url 'categories_list' %}"><i class="fas fa-tags"></i> Categories</a>
-            <a class="nav-link {% if request.resolver_match.url_name == 'budget' %}active{% endif %}" href="{% url 'budget' %}"><i class="fas fa-bullseye"></i> Budget</a>
-            <a class="nav-link {% if request.resolver_match.url_name == 'export_transactions' %}active{% endif %}" href="{% url 'export_transactions' %}"><i class="fas fa-file-export"></i> Export</a>
-            <a class="nav-link {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'edit_profile' %}active{% endif %}" href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a>
-            <a class="nav-link" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Log out</a>
+        <nav class="sidebar-nav">
+            <a class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'dashboard' %}"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a class="sidebar-link {% if request.resolver_match.url_name == 'transactions_list' %}is-active{% endif %}" href="{% url 'transactions_list' %}"><i class="fas fa-list"></i> Transactions</a>
+            <a class="sidebar-link {% if request.resolver_match.url_name == 'accounts_list' %}is-active{% endif %}" href="{% url 'accounts_list' %}"><i class="fas fa-university"></i> Accounts</a>
+            <a class="sidebar-link {% if request.resolver_match.url_name == 'categories_list' %}is-active{% endif %}" href="{% url 'categories_list' %}"><i class="fas fa-tags"></i> Categories</a>
+            <a class="sidebar-link {% if request.resolver_match.url_name == 'budget' %}is-active{% endif %}" href="{% url 'budget' %}"><i class="fas fa-bullseye"></i> Budget</a>
+            <a class="sidebar-link {% if request.resolver_match.url_name == 'export_transactions' %}is-active{% endif %}" href="{% url 'export_transactions' %}"><i class="fas fa-file-export"></i> Export</a>
+            <a class="sidebar-link {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'edit_profile' %}is-active{% endif %}" href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a>
+            <a class="sidebar-link" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Log out</a>
         </nav>
         <div class="sidebar-foot">
             <form method="post" action="{% url 'set_currency' %}">
@@ -149,7 +187,7 @@
             toggle.addEventListener('click', function () { frame.classList.toggle('sidebar-open'); });
         }
         if (backdrop) backdrop.addEventListener('click', closeSidebar);
-        document.querySelectorAll('.app-sidebar .nav-link, .app-sidebar .btn-new').forEach(function (link) {
+        document.querySelectorAll('.app-sidebar .sidebar-link, .app-sidebar .btn-new').forEach(function (link) {
             link.addEventListener('click', closeSidebar);
         });
     })();

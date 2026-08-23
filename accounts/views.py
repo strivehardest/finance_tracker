@@ -704,7 +704,7 @@ def pwa_icon_maskable(request):
 def app_css(request):
     path = settings.BASE_DIR / 'static' / 'css' / 'custom.css'
     response = FileResponse(path.open('rb'), content_type='text/css')
-    response['Cache-Control'] = 'public, max-age=60'
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response
 
 

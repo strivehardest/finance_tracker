@@ -192,3 +192,11 @@ class ExportAndTransactionsTests(TestCase):
         self.assertEqual(page_two.status_code, 200)
         self.assertContains(page_two, 'Previous')
         self.assertContains(page_two, 'fas fa-utensils')
+
+    def test_dashboard_uses_sidebar_shell(self):
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'app-sidebar')
+        self.assertContains(response, 'sidebar-link')
+        self.assertContains(response, 'display: flex !important')
+        self.assertNotContains(response, 'nav flex-column')

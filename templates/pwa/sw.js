@@ -1,10 +1,9 @@
-const CACHE_NAME = 'finance-tracker-v2';
+const CACHE_NAME = 'finance-tracker-v5';
 const OFFLINE_URL = '{{ offline_url }}';
 const PRECACHE_URLS = [
     OFFLINE_URL,
     '{{ icon_192_url }}',
-    '{{ icon_512_url }}',
-    '{% url "app_css" %}'
+    '{{ icon_512_url }}'
 ];
 
 self.addEventListener('install', (event) => {
@@ -39,9 +38,9 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    if (event.request.mode === 'navigate') {
+    if (event.request.mode === 'navigate' || url.pathname === '/app.css' || url.pathname.endsWith('.css')) {
         event.respondWith(
-            fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+            fetch(event.request).catch(() => caches.match(event.request.mode === 'navigate' ? OFFLINE_URL : event.request))
         );
         return;
     }
