@@ -12,13 +12,13 @@
 
 <div class="row g-3 mb-4">
     <div class="col-md-6">
-        <div class="kpi" style="--kpi:#6d28d9">
+        <div class="kpi">
             <div class="label">Total budget this month</div>
             <div class="value">{{ currency_symbol }}{{ total_budget|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-6">
-        <div class="kpi" style="--kpi:#f57c00">
+        <div class="kpi">
             <div class="label">Spent</div>
             <div class="value">{{ currency_symbol }}{{ total_spent|floatformat:2 }} · {{ budget_percent }}%</div>
             <div class="progress mt-3" style="height:8px">

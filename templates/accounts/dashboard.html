@@ -4,29 +4,25 @@
 {% block content %}
 <div class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="kpi" style="--kpi:#6d28d9">
-            <div class="kpi-icon"><i class="fas fa-wallet"></i></div>
+        <div class="kpi">
             <div class="label">Balance</div>
             <div class="value">{{ currency_symbol }}{{ total_balance_converted|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="kpi" style="--kpi:#15803d">
-            <div class="kpi-icon"><i class="fas fa-arrow-up"></i></div>
+        <div class="kpi">
             <div class="label">Income this month</div>
             <div class="value income">{{ currency_symbol }}{{ monthly_income_converted|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="kpi" style="--kpi:#ea580c">
-            <div class="kpi-icon"><i class="fas fa-arrow-down"></i></div>
+        <div class="kpi">
             <div class="label">Expenses this month</div>
             <div class="value expense">{{ currency_symbol }}{{ monthly_expenses_converted|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="kpi" style="--kpi:#2563eb">
-            <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+        <div class="kpi">
             <div class="label">Net this month</div>
             <div class="value {% if net_income_converted >= 0 %}income{% else %}expense{% endif %}">
                 {{ currency_symbol }}{{ net_income_converted|floatformat:2 }}
