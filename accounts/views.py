@@ -3,7 +3,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Q
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse
+from django.urls import reverse
 from django.core.paginator import Paginator
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -770,11 +771,53 @@ def delete_transaction(request, id):
     return render(request, 'accounts/delete_transaction.html', {'transaction': transaction})
 
 
+ICON_DIR = settings.BASE_DIR / 'static' / 'images'
+
+
+def _icon_file(name, content_type):
+    path = ICON_DIR / name
+    response = FileResponse(path.open('rb'), content_type=content_type)
+    response['Cache-Control'] = 'public, max-age=86400'
+    return response
+
+
+def favicon_ico(request):
+    return _icon_file('favicon.ico', 'image/x-icon')
+
+
+def apple_touch_icon(request):
+    return _icon_file('apple-touch-icon.png', 'image/png')
+
+
+def pwa_icon_192(request):
+    return _icon_file('pwa-192.png', 'image/png')
+
+
+def pwa_icon_512(request):
+    return _icon_file('pwa-512.png', 'image/png')
+
+
+def pwa_icon_maskable(request):
+    return _icon_file('pwa-maskable-512.png', 'image/png')
+
+
+def app_css(request):
+    path = settings.BASE_DIR / 'static' / 'css' / 'custom.css'
+    response = FileResponse(path.open('rb'), content_type='text/css')
+    response['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+
 def service_worker(request):
     response = render(
         request,
         'pwa/sw.js',
-        {'STATIC_URL': settings.STATIC_URL},
+        {
+            'STATIC_URL': settings.STATIC_URL,
+            'offline_url': reverse('offline'),
+            'icon_192_url': reverse('pwa_icon_192'),
+            'icon_512_url': reverse('pwa_icon_512'),
+        },
         content_type='application/javascript; charset=utf-8',
     )
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -783,11 +826,47 @@ def service_worker(request):
 
 
 def web_manifest(request):
-    return render(
-        request,
-        'pwa/manifest.webmanifest',
-        content_type='application/manifest+json',
-    )
+    payload = {
+        'id': '/',
+        'name': 'Finance Tracker',
+        'short_name': 'Finance',
+        'description': 'Track income, expenses, and accounts.',
+        'start_url': '/',
+        'scope': '/',
+        'display': 'standalone',
+        'orientation': 'any',
+        'background_color': '#fff7ed',
+        'theme_color': '#f57c00',
+        'lang': 'en',
+        'icons': [
+            {
+                'src': request.build_absolute_uri(reverse('pwa_icon_192')),
+                'sizes': '192x192',
+                'type': 'image/png',
+                'purpose': 'any',
+            },
+            {
+                'src': request.build_absolute_uri(reverse('pwa_icon_512')),
+                'sizes': '512x512',
+                'type': 'image/png',
+                'purpose': 'any',
+            },
+            {
+                'src': request.build_absolute_uri(reverse('pwa_icon_maskable')),
+                'sizes': '512x512',
+                'type': 'image/png',
+                'purpose': 'maskable',
+            },
+        ],
+        'shortcuts': [
+            {'name': 'Dashboard', 'url': reverse('dashboard')},
+            {'name': 'Add transaction', 'url': reverse('add_transaction')},
+            {'name': 'Transactions', 'url': reverse('transactions_list')},
+        ],
+    }
+    response = JsonResponse(payload)
+    response['Content-Type'] = 'application/manifest+json'
+    return response
 
 
 def offline(request):

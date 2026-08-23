@@ -12,20 +12,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: Quicksand, system-ui, sans-serif;
-            background: #f8f9fa;
-            color: #333;
+            font-family: "Space Grotesk", system-ui, sans-serif;
+            background: #fffaf5;
+            color: #1c1917;
             text-align: center;
             padding: 2rem;
         }
         h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-        p { color: #666; margin: 0 0 1.5rem; }
+        p { color: #78716c; margin: 0 0 1.5rem; }
         a {
             color: #fff;
             background: #f57c00;
             text-decoration: none;
             padding: 0.6rem 1.1rem;
-            border-radius: 0.5rem;
+            border-radius: 0.7rem;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -33,7 +34,7 @@
     <main>
         <h1>You're offline</h1>
         <p>Reconnect to load your accounts and transactions.</p>
-        <a href="{% url 'dashboard' %}">Try again</a>
+        <a href="{% url 'home' %}">Try again</a>
     </main>
 </body>
 </html>

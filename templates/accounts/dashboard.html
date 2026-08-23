@@ -3,11 +3,14 @@
 {% block title %}Dashboard - Finance Tracker{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Dashboard</h2>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <div class="page-kicker">Overview</div>
+        <h1 class="h3 mb-0">Hello{% if user.first_name %}, {{ user.first_name }}{% endif %}</h1>
+    </div>
     <div class="d-flex gap-2">
-        <a href="{% url 'add_transaction' %}" class="btn btn-primary">Add Transaction</a>
-        <div class="btn-group" role="group">
+        <a href="{% url 'add_transaction' %}" class="btn btn-primary">Add transaction</a>
+        <div class="btn-group">
             <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                 Export
             </button>
@@ -19,38 +22,30 @@
     </div>
 </div>
 
-<div class="row mb-4">
+<div class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Balance</div>
-                <div class="fs-4 fw-semibold">{{ currency_symbol }}{{ total_balance_converted|floatformat:2 }}</div>
-            </div>
+        <div class="stat-card">
+            <div class="label">Balance</div>
+            <div class="value">{{ currency_symbol }}{{ total_balance_converted|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Income this month</div>
-                <div class="fs-4 fw-semibold income">{{ currency_symbol }}{{ monthly_income_converted|floatformat:2 }}</div>
-            </div>
+        <div class="stat-card">
+            <div class="label">Income this month</div>
+            <div class="value income">{{ currency_symbol }}{{ monthly_income_converted|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Expenses this month</div>
-                <div class="fs-4 fw-semibold expense">{{ currency_symbol }}{{ monthly_expenses_converted|floatformat:2 }}</div>
-            </div>
+        <div class="stat-card">
+            <div class="label">Expenses this month</div>
+            <div class="value expense">{{ currency_symbol }}{{ monthly_expenses_converted|floatformat:2 }}</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="text-muted small">Net this month</div>
-                <div class="fs-4 fw-semibold {% if net_income_converted >= 0 %}income{% else %}expense{% endif %}">
-                    {{ currency_symbol }}{{ net_income_converted|floatformat:2 }}
-                </div>
+        <div class="stat-card">
+            <div class="label">Net this month</div>
+            <div class="value {% if net_income_converted >= 0 %}income{% else %}expense{% endif %}">
+                {{ currency_symbol }}{{ net_income_converted|floatformat:2 }}
             </div>
         </div>
     </div>
@@ -62,22 +57,18 @@
     {{ currency_symbol }}{{ net_balance_converted|floatformat:2 }} net
 </p>
 
-<div class="row mb-4">
+<div class="row g-3 mb-4">
     <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Monthly income and expenses</h5>
-            </div>
+        <div class="card h-100">
+            <div class="card-header">Monthly income and expenses</div>
             <div class="card-body">
                 <canvas id="monthlyChart"></canvas>
             </div>
         </div>
     </div>
     <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">This month by category</h5>
-            </div>
+        <div class="card h-100">
+            <div class="card-header">This month by category</div>
             <div class="card-body">
                 <canvas id="categoryChart"></canvas>
             </div>
@@ -85,17 +76,17 @@
     </div>
 </div>
 
-<div class="row">
+<div class="row g-3">
     <div class="col-md-8">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Recent transactions</h5>
+                <span>Recent transactions</span>
                 <a href="{% url 'transactions_list' %}" class="btn btn-sm btn-outline-primary">View all</a>
             </div>
             <div class="card-body">
                 {% if recent_transactions %}
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                        <table class="table mb-0">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -133,14 +124,14 @@
     <div class="col-md-4">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Accounts</h5>
+                <span>Accounts</span>
                 <a href="{% url 'add_account' %}" class="btn btn-sm btn-outline-primary">Add</a>
             </div>
             <div class="card-body">
                 {% for account in accounts %}
-                    <div class="d-flex justify-content-between align-items-center{% if not forloop.last %} mb-2{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center{% if not forloop.last %} mb-3{% endif %}">
                         <div>
-                            <div>{{ account.name }}</div>
+                            <div class="fw-semibold">{{ account.name }}</div>
                             <small class="text-muted">{{ account.get_type_display }}</small>
                         </div>
                         <span>{{ currency_symbol }}{{ account.display_balance|floatformat:2 }}</span>
@@ -174,8 +165,8 @@
                 {
                     label: 'Income',
                     data: incomeData,
-                    borderColor: '#28a745',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderColor: '#15803d',
+                    backgroundColor: 'rgba(21, 128, 61, 0.1)',
                     borderWidth: 2,
                     tension: 0.3,
                     fill: true,
@@ -183,8 +174,8 @@
                 {
                     label: 'Expenses',
                     data: expenseData,
-                    borderColor: '#dc3545',
-                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    borderColor: '#b91c1c',
+                    backgroundColor: 'rgba(185, 28, 28, 0.1)',
                     borderWidth: 2,
                     tension: 0.3,
                     fill: true,
@@ -194,14 +185,10 @@
         options: {
             responsive: true,
             plugins: {
-                legend: {
-                    position: 'top',
-                }
+                legend: { position: 'top' }
             },
             scales: {
-                y: {
-                    beginAtZero: true
-                }
+                y: { beginAtZero: true }
             }
         }
     });
@@ -235,9 +222,7 @@
             options: {
                 responsive: true,
                 plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
+                    legend: { position: 'bottom' },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
