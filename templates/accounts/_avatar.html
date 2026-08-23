@@ -1,0 +1,6 @@
+<span class="avatar-wrap{% if size == 'lg' %} avatar-wrap-lg{% endif %}">
+    <span class="avatar-fallback">{{ user.first_name|default:user.username|make_list|first|upper }}</span>
+    {% if profile_photo_url %}
+        <img src="{{ profile_photo_url }}" alt="" class="avatar" onerror="this.remove()">
+    {% endif %}
+</span>

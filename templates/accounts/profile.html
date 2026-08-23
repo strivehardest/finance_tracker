@@ -5,13 +5,9 @@
     <div class="col-lg-4">
         <div class="card">
             <div class="card-body text-center">
-                {% if profile_photo_url %}
-                    <img src="{{ profile_photo_url }}" alt="" class="rounded-circle mb-3" style="width:140px;height:140px;object-fit:cover;">
-                {% else %}
-                    <div class="avatar-fallback mx-auto mb-3" style="width:140px;height:140px;font-size:2.5rem;border-radius:50%;">
-                        {{ user.first_name|default:user.username|make_list|first|upper }}
-                    </div>
-                {% endif %}
+                <div class="d-flex justify-content-center mb-3">
+                    {% include 'accounts/_avatar.html' with size='lg' %}
+                </div>
                 <h2 class="h4">{{ user.get_full_name|default:user.username }}</h2>
                 <p class="text-muted">{{ user.email }}</p>
                 <a href="{% url 'edit_profile' %}" class="btn btn-primary">Edit profile</a>

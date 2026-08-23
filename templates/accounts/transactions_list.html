@@ -2,15 +2,9 @@
 {% load ui_tags %}
 
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-    <div>
-        <div class="text-muted small">Records</div>
-        <h2 class="h4 mb-0">Transactions</h2>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{% url 'add_transaction' %}" class="btn btn-primary">+ Add</a>
-        <a href="{% url 'export_transactions' %}" class="btn btn-outline-primary">Export</a>
-    </div>
+<div class="d-flex flex-wrap justify-content-end gap-2 mb-4">
+    <a href="{% url 'add_transaction' %}" class="btn btn-primary">Add</a>
+    <a href="{% url 'export_transactions' %}" class="btn btn-outline-primary">Export</a>
 </div>
 
 <div class="card mb-4">
@@ -85,23 +79,10 @@
                     {% else %}
                         <span class="btn btn-outline-secondary disabled">Previous</span>
                     {% endif %}
-
-                    <div class="tx-pager-pages">
-                        {% for page_num in page_numbers %}
-                            {% if page_num is None %}
-                                <span class="tx-ellipsis">…</span>
-                            {% elif page_num == transactions.number %}
-                                <span class="page-current">{{ page_num }}</span>
-                            {% else %}
-                                <a href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ page_num }}">{{ page_num }}</a>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-
                     <div class="tx-pager-status">
-                        {{ transactions.start_index }}–{{ transactions.end_index }} of {{ transactions.paginator.count }}
+                        Page {{ transactions.number }} of {{ transactions.paginator.num_pages }}
+                        · {{ transactions.start_index }}–{{ transactions.end_index }} of {{ transactions.paginator.count }}
                     </div>
-
                     {% if transactions.has_next %}
                         <a class="btn btn-primary" href="?{% if querystring %}{{ querystring }}&amp;{% endif %}page={{ transactions.next_page_number }}">Next</a>
                     {% else %}

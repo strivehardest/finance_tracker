@@ -13,7 +13,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% url 'app_css' %}?v={{ asset_v|default:'5' }}">
+    <link rel="stylesheet" href="{% url 'app_css' %}?v={{ asset_v|default:'6' }}">
     <link rel="icon" href="{% url 'favicon' %}">
     <link rel="apple-touch-icon" href="{% url 'apple_touch_icon' %}">
     <style>
@@ -37,11 +37,13 @@
         }
         .sidebar-brand { color: #fff !important; text-decoration: none; font-weight: 700; display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1.1rem; }
         .btn-new { display: block; text-align: center; background: #fff !important; color: #261b45 !important; font-weight: 700; border-radius: 999px; padding: 0.7rem 1rem; margin-bottom: 1.2rem; text-decoration: none !important; }
-        .sidebar-nav { display: flex; flex-direction: column; gap: 0.15rem; }
+        .sidebar-nav { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; min-height: 0; overflow-y: auto; }
         .sidebar-link { color: rgba(255,255,255,0.78) !important; text-decoration: none !important; border-radius: 0.75rem; padding: 0.62rem 0.8rem; display: flex; align-items: center; gap: 0.7rem; }
         .sidebar-link i { width: 1.1rem; text-align: center; }
         .sidebar-link:hover, .sidebar-link.is-active { background: #f57c00; color: #fff !important; }
-        .sidebar-foot { margin-top: auto; padding-top: 1rem; }
+        .sidebar-foot { margin-top: auto; padding-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+        .sidebar-logout { display: flex; align-items: center; gap: 0.7rem; color: #fff !important; background: rgba(255,255,255,0.08); border-radius: 0.75rem; padding: 0.62rem 0.8rem; text-decoration: none !important; font-weight: 600; }
+        .sidebar-logout:hover { background: #b91c1c; color: #fff !important; }
         .app-main-col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
         .app-topbar { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1.25rem; background: #fff; border-bottom: 1px solid #ece7e1; flex-wrap: wrap; }
         html[data-theme="dark"] .app-topbar { background: #1a1623; border-bottom-color: #3f3a36; }
@@ -86,9 +88,9 @@
             <a class="sidebar-link {% if request.resolver_match.url_name == 'budget' %}is-active{% endif %}" href="{% url 'budget' %}"><i class="fas fa-bullseye"></i> Budget</a>
             <a class="sidebar-link {% if request.resolver_match.url_name == 'export_transactions' %}is-active{% endif %}" href="{% url 'export_transactions' %}"><i class="fas fa-file-export"></i> Export</a>
             <a class="sidebar-link {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'edit_profile' %}is-active{% endif %}" href="{% url 'profile' %}"><i class="fas fa-user"></i> Profile</a>
-            <a class="sidebar-link" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Log out</a>
         </nav>
         <div class="sidebar-foot">
+            <a class="sidebar-logout" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Log out</a>
             <form method="post" action="{% url 'set_currency' %}">
                 {% csrf_token %}
                 <label class="form-label text-white-50 small mb-1">Currency</label>
@@ -111,17 +113,21 @@
             <div class="topbar-actions">
                 <button type="button" class="icon-btn" id="themeToggle" title="Toggle theme"><i class="fas fa-moon" id="themeIcon"></i></button>
                 <button type="button" id="pwaInstallBtn" class="btn btn-sm btn-outline-primary d-none">Install</button>
-                <a class="profile-chip" href="{% url 'profile' %}">
-                    {% if profile_photo_url %}
-                        <img src="{{ profile_photo_url }}" alt="" class="avatar">
-                    {% else %}
-                        <span class="avatar-fallback">{{ user.first_name|default:user.username|make_list|first|upper }}</span>
-                    {% endif %}
-                    <span>
-                        {{ user.first_name|default:user.username }}
-                        <small>{{ user.email }}</small>
-                    </span>
-                </a>
+                <div class="dropdown">
+                    <a class="profile-chip dropdown-toggle" href="#" id="profileMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                        {% include 'accounts/_avatar.html' %}
+                        <span>
+                            {{ user.first_name|default:user.username }}
+                            <small>{{ user.email }}</small>
+                        </span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileMenu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">Profile</a></li>
+                        <li><a class="dropdown-item" href="{% url 'edit_profile' %}">Edit profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">Log out</a></li>
+                    </ul>
+                </div>
             </div>
         </header>
         <main class="app-body">
@@ -152,10 +158,12 @@
             {% block content %}{% endblock %}
 {% if user.is_authenticated %}
         </main>
+        {% include 'accounts/_footer.html' %}
     </div>
 </div>
 {% else %}
 </div>
+{% include 'accounts/_footer.html' %}
 {% endif %}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
@@ -187,7 +195,7 @@
             toggle.addEventListener('click', function () { frame.classList.toggle('sidebar-open'); });
         }
         if (backdrop) backdrop.addEventListener('click', closeSidebar);
-        document.querySelectorAll('.app-sidebar .sidebar-link, .app-sidebar .btn-new').forEach(function (link) {
+        document.querySelectorAll('.app-sidebar .sidebar-link, .app-sidebar .btn-new, .app-sidebar .sidebar-logout').forEach(function (link) {
             link.addEventListener('click', closeSidebar);
         });
     })();

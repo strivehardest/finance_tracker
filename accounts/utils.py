@@ -138,11 +138,20 @@ def profile_photo_url(user):
     if not picture:
         return ''
     try:
-        if picture.name:
-            return picture.url
+        if not picture.name:
+            return ''
+        url = picture.url
     except Exception:
         return ''
-    return ''
+    if not url:
+        return ''
+    if url.startswith('http://'):
+        url = 'https://' + url[len('http://'):]
+    if '/media/http' in url:
+        url = url.split('/media/', 1)[-1]
+        if url.startswith('http://'):
+            url = 'https://' + url[len('http://'):]
+    return url
 
 
 def category_icon_html(icon, color='#f57c00'):

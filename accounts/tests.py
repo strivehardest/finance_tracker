@@ -192,6 +192,8 @@ class ExportAndTransactionsTests(TestCase):
         self.assertEqual(page_two.status_code, 200)
         self.assertContains(page_two, 'Previous')
         self.assertContains(page_two, 'fas fa-utensils')
+        self.assertContains(page_two, 'Page 2 of')
+        self.assertNotContains(page_two, 'tx-pager-pages')
 
     def test_dashboard_uses_sidebar_shell(self):
         response = self.client.get(reverse('dashboard'))
@@ -200,3 +202,7 @@ class ExportAndTransactionsTests(TestCase):
         self.assertContains(response, 'sidebar-link')
         self.assertContains(response, 'display: flex !important')
         self.assertNotContains(response, 'nav flex-column')
+        self.assertContains(response, 'Log out')
+        self.assertContains(response, 'site-footer')
+        self.assertNotContains(response, 'Overview')
+        self.assertContains(response, 'sidebar-logout')
