@@ -462,16 +462,29 @@ body.auth-page .app-body, body.auth-page .public-wrap {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
+    padding: 2rem 1.5rem;
+    box-sizing: border-box;
 }
 
 .auth-card {
     width: 100%;
-    max-width: 420px;
+    max-width: 28rem;
+    flex: 0 1 28rem;
     border: 1px solid var(--line);
     border-radius: 1.25rem;
     background: var(--card);
     box-shadow: var(--shadow);
     padding: 2rem;
+}
+
+.auth-card-wide {
+    max-width: 36rem;
+    flex: 0 1 36rem;
+}
+
+.auth-card .form-control {
+    min-width: 0;
 }
 
 .icon-pick {

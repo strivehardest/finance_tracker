@@ -11,5 +11,5 @@ def currency_choices(request):
         'profile_photo_url': profile_photo_url(user) if authenticated else '',
         'currency_symbol': CURRENCY_SYMBOLS.get(code, '₵'),
         'category_icon': category_icon_html,
-        'asset_v': '7',
+        'asset_v': '8',
     }

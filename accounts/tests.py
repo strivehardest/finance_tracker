@@ -206,3 +206,13 @@ class ExportAndTransactionsTests(TestCase):
         self.assertContains(response, 'site-footer')
         self.assertNotContains(response, 'Overview')
         self.assertContains(response, 'sidebar-logout')
+
+
+class SignupPageTests(TestCase):
+    def test_signup_uses_wide_auth_card(self):
+        response = Client().get(reverse('signup'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'auth-card-wide')
+        self.assertContains(response, 'Create account')
+        self.assertNotContains(response, 'col-lg-5')
+

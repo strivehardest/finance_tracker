@@ -9,25 +9,25 @@ class SignUpForm(UserCreationForm):
     first_name = forms.CharField(
         max_length=30, 
         required=True,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First name', 'autocomplete': 'given-name'})
     )
     last_name = forms.CharField(
         max_length=30, 
         required=True,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last name', 'autocomplete': 'family-name'})
     )
     email = forms.EmailField(
         required=True,
-        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'})
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email', 'autocomplete': 'email'})
     )
     username = forms.CharField(
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username', 'autocomplete': 'username'})
     )
     password1 = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password'})
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password', 'autocomplete': 'new-password'})
     )
     password2 = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm Password'})
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm password', 'autocomplete': 'new-password'})
     )
 
     class Meta:
@@ -139,11 +139,13 @@ class ProfileForm(forms.ModelForm):
         widgets = {
             'first_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'First Name'
+                'placeholder': 'First name',
+            'autocomplete': 'given-name',
             }),
             'last_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Last Name'
+                'placeholder': 'Last name',
+            'autocomplete': 'family-name',
             }),
             'email': forms.EmailInput(attrs={
                 'class': 'form-control',
