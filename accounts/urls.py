@@ -41,6 +41,7 @@ urlpatterns = [
     
     # Accounts
     path('accounts/', views.accounts_list, name='accounts_list'),
+    path('accounts/transfer/', views.transfer_view, name='transfer'),
     path('accounts/add/', views.add_account, name='add_account'),
     path('accounts/<int:id>/edit/', views.edit_account, name='edit_account'),
     path('accounts/<int:id>/delete/', views.delete_account, name='delete_account'),

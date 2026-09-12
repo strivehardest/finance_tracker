@@ -1,6 +1,13 @@
+import uuid
+from decimal import Decimal
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from decimal import Decimal
+from django.db import transaction as db_transaction
+
+TRANSFER_OUT_NAME = 'Transfer out'
+TRANSFER_IN_NAME = 'Transfer in'
+TRANSFER_CATEGORY_NAMES = (TRANSFER_OUT_NAME, TRANSFER_IN_NAME)
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -149,25 +156,34 @@ class Account(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    opening_balance = models.DecimalField(max_digits=15, decimal_places=2, default=Decimal('0.00'))
 
     def __str__(self):
         return f"{self.name} - ₵{self.balance}"
 
-    def update_balance(self):
+    def save(self, *args, **kwargs):
+        if self._state.adding and not self.opening_balance and self.balance:
+            self.opening_balance = self.balance
+        super().save(*args, **kwargs)
+
+    def transaction_net(self):
         from django.db.models import Sum
-        
         income = Transaction.objects.filter(
-            account=self,
-            category__type='income'
+            account=self, category__type='income'
         ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-        
         expenses = Transaction.objects.filter(
-            account=self,
-            category__type='expense'
+            account=self, category__type='expense'
         ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-        
-        self.balance = income - expenses
-        self.save()
+        return income - expenses
+
+    def update_balance(self):
+        self.balance = self.opening_balance + self.transaction_net()
+        self.save(update_fields=['balance'])
+
+    def set_current_balance(self, new_balance):
+        self.balance = new_balance
+        self.opening_balance = new_balance - self.transaction_net()
+        self.save(update_fields=['balance', 'opening_balance'])
 
 class Transaction(models.Model):
     amount = models.DecimalField(max_digits=15, decimal_places=2)
@@ -177,6 +193,8 @@ class Transaction(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     notes = models.TextField(blank=True)
+    is_transfer = models.BooleanField(default=False)
+    transfer_group = models.UUIDField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -190,3 +208,80 @@ class Transaction(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         self.account.update_balance()
+
+    def delete(self, *args, **kwargs):
+        account = self.account
+        super().delete(*args, **kwargs)
+        account.update_balance()
+
+    def delete_transfer_or_self(self):
+        if self.is_transfer and self.transfer_group:
+            siblings = list(
+                Transaction.objects.filter(
+                    user_id=self.user_id,
+                    transfer_group=self.transfer_group,
+                )
+            )
+            for sibling in siblings:
+                sibling.delete()
+            return
+        self.delete()
+
+
+def get_transfer_categories(user):
+    outgoing, _ = Category.objects.get_or_create(
+        user=user,
+        name=TRANSFER_OUT_NAME,
+        defaults={'type': 'expense', 'icon': 'fa-arrow-up', 'color': '#64748b'},
+    )
+    incoming, _ = Category.objects.get_or_create(
+        user=user,
+        name=TRANSFER_IN_NAME,
+        defaults={'type': 'income', 'icon': 'fa-arrow-down', 'color': '#0f766e'},
+    )
+    if outgoing.type != 'expense':
+        outgoing.type = 'expense'
+        outgoing.save(update_fields=['type'])
+    if incoming.type != 'income':
+        incoming.type = 'income'
+        incoming.save(update_fields=['type'])
+    return outgoing, incoming
+
+
+def perform_transfer(user, source, destination, amount, transfer_date, notes=''):
+    if source.pk == destination.pk:
+        raise ValueError('Choose two different accounts.')
+    if source.user_id != user.id or destination.user_id != user.id:
+        raise ValueError('Accounts must belong to you.')
+    amount = Decimal(str(amount))
+    if amount <= 0:
+        raise ValueError('Amount must be greater than zero.')
+
+    outgoing_category, incoming_category = get_transfer_categories(user)
+    group = uuid.uuid4()
+    notes = notes or ''
+
+    with db_transaction.atomic():
+        outgoing = Transaction.objects.create(
+            user=user,
+            account=source,
+            category=outgoing_category,
+            amount=amount,
+            description=f'Transfer to {destination.name}',
+            date=transfer_date,
+            notes=notes,
+            is_transfer=True,
+            transfer_group=group,
+        )
+        incoming = Transaction.objects.create(
+            user=user,
+            account=destination,
+            category=incoming_category,
+            amount=amount,
+            description=f'Transfer from {source.name}',
+            date=transfer_date,
+            notes=notes,
+            is_transfer=True,
+            transfer_group=group,
+        )
+    return outgoing, incoming

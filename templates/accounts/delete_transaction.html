@@ -16,6 +16,9 @@
                 </div>
                 
                 <p class="mb-3">Are you sure you want to delete the following transaction?</p>
+                {% if transaction.is_transfer %}
+                    <p class="text-muted">This is a transfer. Deleting it will also remove the matching entry on the other account.</p>
+                {% endif %}
                 
                 <div class="card bg-light mb-4">
                     <div class="card-body">

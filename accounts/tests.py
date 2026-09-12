@@ -7,8 +7,10 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
 
-from accounts.forms import ProfileForm
-from accounts.models import Account, Category, Transaction, User
+from decimal import Decimal
+
+from accounts.forms import ProfileForm, TransferForm
+from accounts.models import Account, Category, Transaction, User, perform_transfer
 from accounts.utils import (
     build_excel_report,
     build_pdf_report,
@@ -206,6 +208,95 @@ class ExportAndTransactionsTests(TestCase):
         self.assertContains(response, 'site-footer')
         self.assertNotContains(response, 'Overview')
         self.assertContains(response, 'sidebar-logout')
+
+
+class TransferTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='mover',
+            email='mover@example.com',
+            password='secret12345',
+        )
+        self.cash = Account.objects.create(
+            user=self.user, name='Cash', type='cash', balance=Decimal('200.00')
+        )
+        self.bank = Account.objects.create(
+            user=self.user, name='Bank', type='checking', balance=Decimal('500.00')
+        )
+        self.food = Category.objects.create(
+            user=self.user, name='Food', type='expense', icon='fa-utensils', color='#ea580c'
+        )
+        Transaction.objects.create(
+            user=self.user,
+            account=self.cash,
+            category=self.food,
+            amount=Decimal('20.00'),
+            description='Lunch',
+            date=date.today(),
+        )
+        self.client.login(username='mover', password='secret12345')
+
+    def test_accounts_page_offers_transfer(self):
+        response = self.client.get(reverse('accounts_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Transfer')
+        self.assertContains(response, reverse('transfer'))
+
+    def test_same_account_is_rejected(self):
+        form = TransferForm(
+            data={
+                'from_account': self.cash.pk,
+                'to_account': self.cash.pk,
+                'amount': '10.00',
+                'date': date.today().isoformat(),
+            },
+            user=self.user,
+        )
+        self.assertFalse(form.is_valid())
+
+    def test_one_account_cannot_open_transfer(self):
+        self.bank.delete()
+        response = self.client.get(reverse('transfer'))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('accounts_list'))
+
+    def test_transfer_moves_money_without_changing_income_or_expense(self):
+        response = self.client.post(reverse('transfer'), {
+            'from_account': self.cash.pk,
+            'to_account': self.bank.pk,
+            'amount': '50.00',
+            'date': date.today().isoformat(),
+            'notes': 'Move cash',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.cash.refresh_from_db()
+        self.bank.refresh_from_db()
+        self.assertEqual(self.cash.balance, Decimal('130.00'))
+        self.assertEqual(self.bank.balance, Decimal('550.00'))
+        self.assertEqual(Transaction.objects.filter(user=self.user, is_transfer=True).count(), 2)
+
+        dashboard = self.client.get(reverse('dashboard'))
+        self.assertEqual(dashboard.status_code, 200)
+        self.assertEqual(dashboard.context['monthly_expenses_converted'], 20.0)
+        self.assertEqual(dashboard.context['monthly_income_converted'], 0.0)
+
+    def test_deleting_a_transfer_restores_both_accounts(self):
+        outgoing, _incoming = perform_transfer(
+            self.user, self.cash, self.bank, Decimal('40.00'), date.today(), 'Undo me'
+        )
+        self.cash.refresh_from_db()
+        self.bank.refresh_from_db()
+        self.assertEqual(self.cash.balance, Decimal('140.00'))
+        self.assertEqual(self.bank.balance, Decimal('540.00'))
+
+        response = self.client.post(reverse('delete_transaction', args=[outgoing.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Transaction.objects.filter(user=self.user, is_transfer=True).count(), 0)
+        self.cash.refresh_from_db()
+        self.bank.refresh_from_db()
+        self.assertEqual(self.cash.balance, Decimal('180.00'))
+        self.assertEqual(self.bank.balance, Decimal('500.00'))
 
 
 class SignupPageTests(TestCase):

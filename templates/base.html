@@ -83,7 +83,7 @@
         <nav class="sidebar-nav">
             <a class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}" href="{% url 'dashboard' %}"><i class="fas fa-th-large"></i> Dashboard</a>
             <a class="sidebar-link {% if request.resolver_match.url_name == 'transactions_list' %}is-active{% endif %}" href="{% url 'transactions_list' %}"><i class="fas fa-list"></i> Transactions</a>
-            <a class="sidebar-link {% if request.resolver_match.url_name == 'accounts_list' %}is-active{% endif %}" href="{% url 'accounts_list' %}"><i class="fas fa-university"></i> Accounts</a>
+            <a class="sidebar-link {% if request.resolver_match.url_name == 'accounts_list' or request.resolver_match.url_name == 'transfer' %}is-active{% endif %}" href="{% url 'accounts_list' %}"><i class="fas fa-university"></i> Accounts</a>
             <a class="sidebar-link {% if request.resolver_match.url_name == 'categories_list' %}is-active{% endif %}" href="{% url 'categories_list' %}"><i class="fas fa-tags"></i> Categories</a>
             <a class="sidebar-link {% if request.resolver_match.url_name == 'budget' %}is-active{% endif %}" href="{% url 'budget' %}"><i class="fas fa-bullseye"></i> Budget</a>
             <a class="sidebar-link {% if request.resolver_match.url_name == 'export_transactions' %}is-active{% endif %}" href="{% url 'export_transactions' %}"><i class="fas fa-file-export"></i> Export</a>

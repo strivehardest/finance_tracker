@@ -206,8 +206,9 @@ def filter_transactions_period(queryset, period, start_str=None, end_str=None):
 
 
 def _summaries(transactions):
-    income = transactions.filter(category__type='income').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-    expenses = transactions.filter(category__type='expense').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    regular = transactions.filter(is_transfer=False)
+    income = regular.filter(category__type='income').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+    expenses = regular.filter(category__type='expense').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
     return income, expenses, income - expenses
 
 

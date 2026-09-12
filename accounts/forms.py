@@ -1,9 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User, Transaction, Account, Category
+from .models import TRANSFER_CATEGORY_NAMES, User, Transaction, Account, Category
 from .utils import is_uploaded_file, normalize_icon, process_profile_image
 from django.core.exceptions import ValidationError
 from datetime import datetime
+from decimal import Decimal
 
 class SignUpForm(UserCreationForm):
     first_name = forms.CharField(
@@ -75,7 +76,9 @@ class TransactionForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         if user:
-            self.fields['category'].queryset = Category.objects.filter(user=user)
+            self.fields['category'].queryset = Category.objects.filter(user=user).exclude(
+                name__in=TRANSFER_CATEGORY_NAMES
+            )
             self.fields['account'].queryset = Account.objects.filter(user=user, is_active=True)
 
 class AccountForm(forms.ModelForm):
@@ -94,6 +97,58 @@ class AccountForm(forms.ModelForm):
                 'placeholder': '0.00'
             }),
         }
+
+
+class TransferForm(forms.Form):
+    from_account = forms.ModelChoiceField(
+        queryset=Account.objects.none(),
+        empty_label='Select account',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='From',
+    )
+    to_account = forms.ModelChoiceField(
+        queryset=Account.objects.none(),
+        empty_label='Select account',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='To',
+    )
+    amount = forms.DecimalField(
+        min_value=Decimal('0.01'),
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'step': '0.01',
+            'min': '0.01',
+            'class': 'form-control',
+            'placeholder': '0.00',
+        }),
+    )
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+    )
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'rows': 3,
+            'class': 'form-control',
+            'placeholder': 'Optional notes',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        accounts = Account.objects.filter(user=user, is_active=True) if user else Account.objects.none()
+        self.fields['from_account'].queryset = accounts
+        self.fields['to_account'].queryset = accounts
+
+    def clean(self):
+        cleaned = super().clean()
+        source = cleaned.get('from_account')
+        destination = cleaned.get('to_account')
+        if source and destination and source == destination:
+            raise ValidationError('Choose two different accounts.')
+        return cleaned
+
 
 class CategoryForm(forms.ModelForm):
     class Meta:

@@ -10,9 +10,16 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
-from .models import User, Account, Category, Transaction
+from .models import (
+    TRANSFER_CATEGORY_NAMES,
+    User,
+    Account,
+    Category,
+    Transaction,
+    perform_transfer,
+)
 from .utils import (
     CURRENCY_SYMBOLS,
     PERIOD_CHOICES,
@@ -24,7 +31,7 @@ from .utils import (
     parse_date,
     profile_photo_url,
 )
-from .forms import SignUpForm, TransactionForm, AccountForm, CategoryForm, ProfileForm
+from .forms import SignUpForm, TransactionForm, AccountForm, CategoryForm, ProfileForm, TransferForm
 import requests
 import json
 from openpyxl import Workbook
@@ -197,24 +204,28 @@ def dashboard(request):
         user=request.user,
         date__month=now.month,
         date__year=now.year,
-        category__type='income'
+        category__type='income',
+        is_transfer=False,
     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
 
     monthly_expenses = Transaction.objects.filter(
         user=request.user,
         date__month=now.month,
         date__year=now.year,
-        category__type='expense'
+        category__type='expense',
+        is_transfer=False,
     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
 
     total_income = Transaction.objects.filter(
         user=request.user,
-        category__type='income'
+        category__type='income',
+        is_transfer=False,
     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
 
     total_expenses = Transaction.objects.filter(
         user=request.user,
-        category__type='expense'
+        category__type='expense',
+        is_transfer=False,
     ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
 
     total_balance_converted = convert_currency(float(total_balance), 'GHS', user_currency)
@@ -233,7 +244,9 @@ def dashboard(request):
             year -= 1
     months_dict = dict(reversed(list(months_dict.items())))
 
-    all_transactions = Transaction.objects.filter(user=request.user).values_list('date', 'category__type', 'amount')
+    all_transactions = Transaction.objects.filter(
+        user=request.user, is_transfer=False
+    ).values_list('date', 'category__type', 'amount')
     for trans_date, trans_type, trans_amount in all_transactions:
         month_key = trans_date.strftime('%b %Y')
         if month_key in months_dict:
@@ -246,7 +259,8 @@ def dashboard(request):
     category_data = Transaction.objects.filter(
         user=request.user,
         date__month=now.month,
-        date__year=now.year
+        date__year=now.year,
+        is_transfer=False,
     ).values('category__name').annotate(total=Sum('amount')).order_by('-total')
 
     category_data_list = []
@@ -352,7 +366,53 @@ def add_transaction(request):
 @login_required
 def accounts_list(request):
     accounts = Account.objects.filter(user=request.user)
-    return render(request, 'accounts/accounts_list.html', {'accounts': accounts, 'page_title': 'Accounts'})
+    can_transfer = accounts.filter(is_active=True).count() >= 2
+    return render(request, 'accounts/accounts_list.html', {
+        'accounts': accounts,
+        'can_transfer': can_transfer,
+        'page_title': 'Accounts',
+    })
+
+
+@login_required
+def transfer_view(request):
+    accounts = Account.objects.filter(user=request.user, is_active=True)
+    if accounts.count() < 2:
+        messages.warning(request, 'Add at least two accounts before making a transfer.')
+        return redirect('accounts_list')
+
+    initial = {'date': date.today()}
+    from_id = request.GET.get('from')
+    if from_id and str(from_id).isdigit():
+        source = accounts.filter(pk=from_id).first()
+        if source:
+            initial['from_account'] = source.pk
+
+    if request.method == 'POST':
+        form = TransferForm(request.POST, user=request.user)
+        if form.is_valid():
+            perform_transfer(
+                user=request.user,
+                source=form.cleaned_data['from_account'],
+                destination=form.cleaned_data['to_account'],
+                amount=form.cleaned_data['amount'],
+                transfer_date=form.cleaned_data['date'],
+                notes=form.cleaned_data.get('notes') or '',
+            )
+            messages.success(
+                request,
+                f"Transferred {form.cleaned_data['amount']} from "
+                f"{form.cleaned_data['from_account'].name} to "
+                f"{form.cleaned_data['to_account'].name}.",
+            )
+            return redirect('accounts_list')
+    else:
+        form = TransferForm(user=request.user, initial=initial)
+
+    return render(request, 'accounts/transfer.html', {
+        'form': form,
+        'page_title': 'Transfer',
+    })
 
 @login_required
 def add_account(request):
@@ -361,6 +421,7 @@ def add_account(request):
         if form.is_valid():
             account = form.save(commit=False)
             account.user = request.user
+            account.opening_balance = account.balance or Decimal('0.00')
             account.save()
             messages.success(request, 'Account added successfully!')
             return redirect('accounts_list')
@@ -375,7 +436,9 @@ def edit_account(request, id):
     if request.method == 'POST':
         form = AccountForm(request.POST, instance=account)
         if form.is_valid():
-            form.save()
+            account = form.save(commit=False)
+            account.opening_balance = account.balance - account.transaction_net()
+            account.save()
             messages.success(request, 'Account updated successfully!')
             return redirect('accounts_list')
     else:
@@ -395,7 +458,7 @@ def delete_account(request, id):
 
 @login_required
 def categories_list(request):
-    categories = Category.objects.filter(user=request.user)
+    categories = Category.objects.filter(user=request.user).exclude(name__in=TRANSFER_CATEGORY_NAMES)
     return render(request, 'accounts/categories_list.html', {'categories': categories, 'page_title': 'Categories'})
 
 @login_required
@@ -416,6 +479,9 @@ def add_category(request):
 @login_required
 def edit_category(request, pk):
     category = get_object_or_404(Category, pk=pk, user=request.user)
+    if category.name in TRANSFER_CATEGORY_NAMES:
+        messages.info(request, 'Transfer categories are managed automatically.')
+        return redirect('categories_list')
     if request.method == 'POST':
         form = CategoryForm(request.POST, instance=category)
         if form.is_valid():
@@ -430,6 +496,9 @@ def edit_category(request, pk):
 @login_required
 def delete_category(request, pk):
     category = get_object_or_404(Category, pk=pk, user=request.user)
+    if category.name in TRANSFER_CATEGORY_NAMES:
+        messages.info(request, 'Transfer categories are managed automatically.')
+        return redirect('categories_list')
     if request.method == 'POST':
         category.delete()
         messages.success(request, 'Category deleted successfully!')
@@ -583,7 +652,9 @@ def export_transactions_pdf(request):
 def budget_view(request):
     """Budget management view"""
     # Get only expense categories with budget limits
-    categories = Category.objects.filter(user=request.user, type='expense')
+    categories = Category.objects.filter(user=request.user, type='expense').exclude(
+        name__in=TRANSFER_CATEGORY_NAMES
+    )
     
     # Calculate spending for each category this month
     current_month_start = datetime.now().replace(day=1)
@@ -604,7 +675,8 @@ def budget_view(request):
             user=request.user,
             category=category,
             date__gte=current_month_start,
-            date__lt=next_month_start
+            date__lt=next_month_start,
+            is_transfer=False,
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         
         budget_limit = Decimal(str(category.budget_limit)) if category.budget_limit else Decimal('0.00')
@@ -648,6 +720,9 @@ def budget_view(request):
 @login_required
 def edit_transaction(request, id):
     transaction = get_object_or_404(Transaction, id=id, user=request.user)
+    if transaction.is_transfer:
+        messages.info(request, 'Transfers cannot be edited. Delete this transfer and create a new one.')
+        return redirect('transactions_list')
     if request.method == 'POST':
         form = TransactionForm(request.POST, instance=transaction, user=request.user)
         if form.is_valid():
@@ -664,8 +739,12 @@ def edit_transaction(request, id):
 def delete_transaction(request, id):
     transaction = get_object_or_404(Transaction, id=id, user=request.user)
     if request.method == 'POST':
-        transaction.delete()
-        messages.success(request, 'Transaction deleted successfully!')
+        if transaction.is_transfer:
+            transaction.delete_transfer_or_self()
+            messages.success(request, 'Transfer removed from both accounts.')
+        else:
+            transaction.delete()
+            messages.success(request, 'Transaction deleted successfully!')
         return redirect('transactions_list')
     
     return render(request, 'accounts/delete_transaction.html', {'transaction': transaction, 'page_title': 'Delete transaction'})
