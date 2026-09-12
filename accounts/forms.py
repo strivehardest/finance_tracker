@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.db.models import Q
 from .models import TRANSFER_CATEGORY_NAMES, User, Transaction, Account, Category
 from .utils import is_uploaded_file, normalize_icon, process_profile_image
 from django.core.exceptions import ValidationError
@@ -150,6 +151,37 @@ class TransferForm(forms.Form):
         if source and destination and source == destination:
             raise ValidationError('Choose two different accounts.')
         return cleaned
+
+
+class AddBudgetForm(forms.Form):
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.none(),
+        empty_label='Select category',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    amount = forms.DecimalField(
+        min_value=Decimal('0.01'),
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'step': '0.01',
+            'min': '0.01',
+            'class': 'form-control',
+            'placeholder': '0.00',
+        }),
+        label='Monthly budget',
+    )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['category'].queryset = Category.objects.filter(
+                user=user,
+                type='expense',
+            ).exclude(name__in=TRANSFER_CATEGORY_NAMES).filter(
+                Q(budget_limit__isnull=True) | Q(budget_limit=0)
+            )
+        self.fields['category'].label_from_instance = lambda category: category.name
 
 
 class CategoryForm(forms.ModelForm):

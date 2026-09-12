@@ -275,6 +275,10 @@ a { color: var(--brand-dark); }
     height: 100%;
 }
 
+.card .kpi {
+    height: auto;
+}
+
 .kpi .label {
     color: var(--muted);
     font-size: 0.9rem;

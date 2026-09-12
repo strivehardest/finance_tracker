@@ -31,7 +31,7 @@ from .utils import (
     parse_date,
     profile_photo_url,
 )
-from .forms import SignUpForm, TransactionForm, AccountForm, CategoryForm, ProfileForm, TransferForm
+from .forms import SignUpForm, TransactionForm, AccountForm, CategoryForm, ProfileForm, TransferForm, AddBudgetForm
 import requests
 import json
 from openpyxl import Workbook
@@ -651,10 +651,20 @@ def export_transactions_pdf(request):
 @login_required
 def budget_view(request):
     """Budget management view"""
-    # Get only expense categories with budget limits
     categories = Category.objects.filter(user=request.user, type='expense').exclude(
         name__in=TRANSFER_CATEGORY_NAMES
     )
+
+    if request.method == 'POST':
+        form = AddBudgetForm(request.POST, user=request.user)
+        if form.is_valid():
+            category = form.cleaned_data['category']
+            category.budget_limit = form.cleaned_data['amount']
+            category.save(update_fields=['budget_limit'])
+            messages.success(request, f'Budget added for {category.name}.')
+            return redirect('budget')
+    else:
+        form = AddBudgetForm(user=request.user)
     
     # Calculate spending for each category this month
     current_month_start = datetime.now().replace(day=1)
@@ -710,6 +720,8 @@ def budget_view(request):
         'total_budget': total_budget,
         'total_spent': total_spent,
         'budget_percent': total_budget_percent,
+        'form': form,
+        'can_add_budget': form.fields['category'].queryset.exists(),
         'page_title': 'Budget',
         'currency_symbol': CURRENCY_SYMBOLS.get(request.user.preferred_currency, '₵'),
     }

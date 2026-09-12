@@ -28,7 +28,34 @@
     </div>
 </div>
 
-<div class="card">
+{% if can_add_budget %}
+<div class="card mb-4">
+    <div class="card-header">Add budget</div>
+    <div class="card-body">
+        <form method="post" class="row g-3 align-items-end">
+            {% csrf_token %}
+            <div class="col-md-5">
+                <label class="form-label" for="{{ form.category.id_for_label }}">Category</label>
+                {{ form.category }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="{{ form.amount.id_for_label }}">Monthly amount</label>
+                {{ form.amount }}
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Add budget</button>
+            </div>
+            {% if form.errors %}
+                <div class="col-12">
+                    <div class="alert alert-danger mb-0">{{ form.errors }}</div>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="card mb-4">
     <div class="card-header">By category</div>
     <div class="card-body">
         {% if categories %}
@@ -52,7 +79,7 @@
                 </div>
             {% endfor %}
         {% else %}
-            <p class="text-muted mb-0">No category budgets yet. <a href="{% url 'categories_list' %}">Set a budget on a category</a>.</p>
+            <p class="text-muted mb-0">No category budgets yet.{% if can_add_budget %} Use Add budget above.{% else %} <a href="{% url 'add_category' %}">Add an expense category</a> first.{% endif %}</p>
         {% endif %}
     </div>
 </div>

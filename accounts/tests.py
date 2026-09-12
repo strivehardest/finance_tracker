@@ -155,6 +155,8 @@ class ExportAndTransactionsTests(TestCase):
         self.assertEqual(page.status_code, 200)
         self.assertContains(page, 'Send by email')
         self.assertContains(page, 'This month')
+        self.assertContains(page, 'will be included')
+        self.assertNotContains(page, 'card h-100')
 
         download = self.client.post(reverse('export_transactions'), {
             'period': 'this_month',
@@ -297,6 +299,38 @@ class TransferTests(TestCase):
         self.bank.refresh_from_db()
         self.assertEqual(self.cash.balance, Decimal('180.00'))
         self.assertEqual(self.bank.balance, Decimal('500.00'))
+
+
+class BudgetPageTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='budgeter',
+            email='budget@example.com',
+            password='secret12345',
+        )
+        self.food = Category.objects.create(
+            user=self.user, name='Food', type='expense', icon='fa-utensils', color='#ea580c'
+        )
+        self.client.login(username='budgeter', password='secret12345')
+
+    def test_budget_page_can_add_a_category_budget(self):
+        page = self.client.get(reverse('budget'))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Add budget')
+        self.assertContains(page, 'Food')
+
+        response = self.client.post(reverse('budget'), {
+            'category': self.food.pk,
+            'amount': '250.00',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.food.refresh_from_db()
+        self.assertEqual(self.food.budget_limit, Decimal('250.00'))
+
+        listed = self.client.get(reverse('budget'))
+        self.assertContains(listed, '250.00')
+        self.assertNotContains(listed, 'Add budget')
 
 
 class SignupPageTests(TestCase):
