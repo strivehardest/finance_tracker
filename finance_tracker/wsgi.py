@@ -7,10 +7,21 @@ For more information on this file, see
 https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 """
 
+import logging
 import os
 
+from django.core.management import call_command
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'finance_tracker.settings')
 
 application = get_wsgi_application()
+
+logger = logging.getLogger(__name__)
+
+try:
+    call_command('migrate', interactive=False, verbosity=1)
+except Exception:
+    logger.exception('Could not apply database migrations on startup')
+    raise
+
