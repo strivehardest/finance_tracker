@@ -140,6 +140,8 @@ class TransferForm(forms.Form):
         accounts = Account.objects.filter(user=user, is_active=True) if user else Account.objects.none()
         self.fields['from_account'].queryset = accounts
         self.fields['to_account'].queryset = accounts
+        self.fields['from_account'].label_from_instance = lambda account: account.name
+        self.fields['to_account'].label_from_instance = lambda account: account.name
 
     def clean(self):
         cleaned = super().clean()

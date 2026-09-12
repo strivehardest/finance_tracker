@@ -59,7 +59,7 @@
                             <div class="fw-semibold">
                                 {{ transaction.description }}
                                 {% if transaction.is_transfer %}
-                                    <span class="badge text-bg-secondary ms-1">Transfer</span>
+                                    <span class="badge bg-secondary ms-1">Transfer</span>
                                 {% endif %}
                             </div>
                             <div class="tx-meta">{{ transaction.category.name }} · {{ transaction.account.name }} · {{ transaction.date|date:"M d, Y" }}</div>
